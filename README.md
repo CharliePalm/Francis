@@ -41,7 +41,7 @@ You sure can :)\
 
 ## Contributing
 
-Submit a pull request and I'll happily review it. Otherwise you're free to fork and use as you will.
+Submit a pull request (with unit test coverage please) and I'll happily review it. Otherwise you're free to fork and use as you will.
 
 ## Known Bugs
 
