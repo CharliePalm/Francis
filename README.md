@@ -1,14 +1,29 @@
 # Formula Generator
 
-Have you ever been writing a complicated formula and thought to yourself: "man, this sucks! I wish there was literally any other way I could do this."?
-Well you're in luck, because this is a complicated, but programmer friendly way of getting around the problematic syntax of Notion's formula API.
+Have you ever been writing a complicated formula in Notion and thought to yourself: "man, this sucks! I wish there was literally any other way I could do this"?
+Well you're in luck, because this is a somewhat complicated but programmer friendly way of getting around the problematic syntax of Notion's formula API.
 With this tool you can simply write thoroughly compile checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
 
 ## Usage
 
 This usage guide assumes basic programming profficiency. You don't really need to be typescript expert but you should be familiar with the concept of basic logic and polymorphism
 
-Markup : 1. 
+    git clone https://github.com/CharliePalm/NotionFormulaGenerator
+    cd NotionFormulaGenerator
+    npm i
+Now create a typescript file and create your class based on the provided example, or just use the example file and replace with your DB properties and logic, then run
+    
+    ts-node MyFile.ts
+
+Requirements for creating your formula() function:
+
+1. All if blocks must have an else block.
+2. Defining a variable is prohibited.
+3. Calling functions that are not a member of the parent class is prohibited, but will not currently throw an error and tell you this is what you did wrong.
+3. Trailing commas are not allowed
+
+Aside from these exceptions, if typescript compiles you should be good to go.
+
 ## FAQ
 
 "Why typescript?"
