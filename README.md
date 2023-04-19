@@ -36,7 +36,7 @@ Make sure that you followed the usage guide and are correctly invoking your subc
 Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for.
 
 "Can I buy you a coffee?"
-You sure can :)__
+You sure can :)\
 <a href="https://www.buymeacoffee.com/charliepalm" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
 ## Future plans
