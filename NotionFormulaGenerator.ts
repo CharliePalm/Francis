@@ -1,12 +1,14 @@
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, Property, NotionDate } from "./model";
+import { NodeType, NotionDate } from "./model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;
+
     /**
      * implement your formula with this method
      */
     abstract formula(): any;
+
     /**
      * returns the object associated with the property
      * @param property 
@@ -18,6 +20,7 @@ export abstract class NotionFormulaGenerator {
 
     public compile(): string {
         const formulaBody = this.formula.toString()
+            .replace(/^\/\/.*$/gm, '')
             .replace(/\s+/g, '') // Remove all whitespace
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons

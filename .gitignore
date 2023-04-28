@@ -26,8 +26,6 @@ src/parser/diagnosticMessages.generated.json
 rwc-report.html
 *.swp
 build.json
-*.config.*
-*.config
 scripts/eslint/built/
 scripts/debug.bat
 scripts/run.bat

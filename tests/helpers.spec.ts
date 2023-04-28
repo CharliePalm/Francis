@@ -1,4 +1,4 @@
-import { getBlockContent, convertBlockContent, getStatement } from '../helpers/helpers';
+import { getBlockContent, getStatement } from '../helpers/helpers';
 
 describe('helper functions', () => {
     describe('getBlockContent', () => {
