@@ -20,8 +20,8 @@ export abstract class NotionFormulaGenerator {
 
     public compile(): string {
         const formulaBody = this.formula.toString()
-            .replace(/^\/\/.*$/gm, '')
-            .replace(/\s+/g, '') // Remove all whitespace
+            .replace(/\/\/.*$/gm, '') // Remove all comments
+            .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
             .slice(10, -1); // Remove formula() {} brackets

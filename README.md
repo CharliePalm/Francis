@@ -21,6 +21,7 @@ Requirements for creating your formula() function:
 2. Defining a variable is prohibited.
 3. Calling functions that are not a member of the parent class is prohibited, but will not currently throw an error and tell you this is what you did wrong.
 3. Trailing commas are not allowed
+4. Ternary operators are not allowed but will be in a future release
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
