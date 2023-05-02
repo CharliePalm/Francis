@@ -22,6 +22,34 @@ describe('notionFormulaGenerator', () => {
         });
     });
 
+    describe('initial replacement', () => {
+        class FunctionTestClass extends NotionFormulaGenerator {
+            x = new Model.Number('test 1');
+            y = new Model.Text('test 2');
+            formula() {
+                if (this.format(this.x.value * this.getVal()) == this.y.value) {
+                    return this.getVal();
+                } else if ((this.getVal() * this.x.value) > 1){
+                    return this.getVal() * this.x.value;
+                } else {
+                    return 0;
+                }
+            }
+            getVal() {
+                return 2;
+            }
+            public buildFunctionMap(): Map<string, string> {
+                return new Map().set('getVal', this.getVal.toString());
+            }
+        }
+        it('should replace function calls', () => {
+            const t = new FunctionTestClass();
+            t.compile();
+            expect(t.tree.root.statement).toEqual('format(prop("test 1")*2)==prop("test 2")');
+            expect(t.tree.root.trueChild.statement).toEqual('2');
+        });
+    });
+
     describe('replace functions', () => {
         it('should replace this.* in statement', () => {
             const n = new Node(Model.NodeType.Logic, 'this.dateBetween(prop("test"), prop("test2"), "days")');
@@ -111,7 +139,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),'days')<=0,100,if(prop("Status")=='Notstarted',(prop("Difficulty"))*(pi/dateBetween(dateAdd(prop("Due date"),1,'days'),now(),'days')),dateBetween(prop("Last worked on"),now(),'days')*(prop("Difficulty")/(100+e)+e))))`)
+            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),'days')<=0,100,if(prop("Status")=='Not started',(prop("Difficulty"))*(pi/dateBetween(dateAdd(prop("Due date"),1,'days'),now(),'days')),dateBetween(prop("Last worked on"),now(),'days')*(prop("Difficulty")/(100+e)+e))))`)
         });
     });
 });

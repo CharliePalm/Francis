@@ -9,6 +9,10 @@ export abstract class NotionFormulaGenerator {
      */
     abstract formula(): any;
 
+    public buildFunctionMap(): Map<string, string> {
+        return new Map<string, string>();
+    }
+
     /**
      * returns the object associated with the property
      * @param property 
@@ -19,7 +23,21 @@ export abstract class NotionFormulaGenerator {
     }
 
     public compile(): string {
+        const functionMap = this.buildFunctionMap();
         const formulaBody = this.formula.toString()
+            // replace function calls
+            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => {
+                const func = functionMap.get(functionName)
+                if (func) {
+                    // If the function exists in the functionMap, replace the function call with its code
+                    const functionCode = func.toString();
+                    const body = functionCode.slice(functionCode.indexOf('return') + 6, functionCode.lastIndexOf("}"));
+                    return body.trim();
+                } else {
+                    // Otherwise, return the original match
+                    return match;
+                }
+            })
             .replace(/\/\/.*$/gm, '') // Remove all comments
             .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
@@ -107,6 +125,7 @@ export abstract class NotionFormulaGenerator {
     unaryPlus(value: number): number { return 0; }
     max(...values: number[]): number { return 0; }
     min(...values: number[]): number { return 0; }
+    round(value: number): number { return 0; }
 
     // string operations
     concat(...values: any): string { return ''; }
