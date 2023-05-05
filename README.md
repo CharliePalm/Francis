@@ -75,7 +75,7 @@ Submit a pull request (with unit test coverage please) and I'll happily review i
 
 ## Known Bugs
 
-Currently there are no known bugs, but please feel free to report any issues that you might find.
+Calling a wrapper function with arithmetic operators inside of the parentheses leads to parsing errors. i.e. this.round(functionCallHere() + 10) won't work for the time being. This is being addressed and will be fixed soon.
 
 ## Future Plans
 
