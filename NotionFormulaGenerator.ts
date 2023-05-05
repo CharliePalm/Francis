@@ -24,21 +24,26 @@ export abstract class NotionFormulaGenerator {
 
     public compile(): string {
         const functionMap = this.buildFunctionMap();
+        // update function map to check if other functions reference each other
+        this.updateFunctionMap(functionMap);
+        functionMap.keys()
+        const constMap = new Map<string, string>();
+        // begin replacements
         const formulaBody = this.formula.toString()
-            // replace function calls
-            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => {
-                const func = functionMap.get(functionName)
-                if (func) {
-                    // If the function exists in the functionMap, replace the function call with its code
-                    const functionCode = func.toString();
-                    const body = functionCode.slice(functionCode.indexOf('return') + 6, functionCode.lastIndexOf("}"));
-                    return body.trim();
-                } else {
-                    // Otherwise, return the original match
-                    return match;
-                }
-            })
+            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => functionMap.get(functionName)!) // replace function calls
             .replace(/\/\/.*$/gm, '') // Remove all comments
+            // remove constant definitions
+            .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, (_: string, var1: string, var2: string) => {
+                constMap.set(var1, var2);
+                return '';
+            })
+            // replace all constants with their values
+            .replace(
+                new RegExp(`(?<=[\\s{(*+-/])(${[...constMap.keys()].join('|')})(?=[\\s})+\\-/*;]|$)`, 'g'), 
+                (match, constName) => 
+                    constMap.get(constName) ?? match
+                )
+            .replace(/if\s*\([^{}]*\)\s*{\s*}\s*(else\s+if\s*\([^{}]*\)\s*{\s*}\s*)*/g, '') // remove empty ifs
             .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
@@ -61,7 +66,9 @@ export abstract class NotionFormulaGenerator {
         node.statement = node.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${this.getProperty(property)?.name}")`);
         this.replaceProperties(node.trueChild);
         this.replaceProperties(node.falseChild);
-        const a = 'a' !< 'b';
+        node.wrappedChildren?.forEach((child) => {
+            this.replaceProperties(child);
+        });
     }
 
     /**
@@ -78,6 +85,9 @@ export abstract class NotionFormulaGenerator {
             .replace(/!(?!=)/g, ' not ');
         this.replaceFunctionsAndOperators(node.trueChild);
         this.replaceFunctionsAndOperators(node.falseChild);
+        node.wrappedChildren?.forEach((child) => {
+            this.replaceFunctionsAndOperators(child);
+        });
     }
 
     /**
@@ -87,15 +97,63 @@ export abstract class NotionFormulaGenerator {
      * @returns the completed formula for the step
      */
     public build(node: Node, currentFormula: string): string {
-        if (node.type == NodeType.Logic) {
-            currentFormula += 'if(' + node.statement + ','
-            currentFormula = this.build(node.trueChild, currentFormula) + ',';
-            currentFormula = this.build(node.falseChild, currentFormula);
-            currentFormula += ')';
-        } else {
-            currentFormula += node.statement;
+        switch (node.type) {
+            case NodeType.Logic:
+                currentFormula += 'if(' + node.statement + ','
+                currentFormula = this.build(node.trueChild, currentFormula) + ',';
+                currentFormula = this.build(node.falseChild, currentFormula);
+                currentFormula += ')';
+                break;
+            case NodeType.Return:
+                currentFormula += node.statement;
+                break;
+            case NodeType.Wrapper:
+                node.wrappedChildren.forEach((child) => {
+                    const idx = node.statement.indexOf('()') + 1;
+                    const statement = node.statement.substring(0, idx);
+                    currentFormula += statement;
+                    currentFormula = this.build(child, currentFormula);
+                    currentFormula += ')';
+                    node.statement = node.statement.substring(idx + 1, node.statement.length)
+                });
+                break;
         }
         return currentFormula;
+    }
+
+    public updateFunctionMap(input: Map<string, string>) {
+        const r = new RegExp(`this\\.(${[...input.keys()].join('|')})\\(\\)`, 'g');
+        // clean functions of functionName() and brackets
+        const baseFunctions: string[] = [];
+        let toUpdate: string[] = [];
+        input.forEach((f, key) => {
+            f = f?.slice(key.length + 4, -1).trim();
+            input.set(key, f);
+        });
+        input.forEach((f, key) => {
+            if (f.match(r)) {
+                toUpdate.push(key);
+            } else {
+                baseFunctions.push(key);
+            }
+        });
+        while (toUpdate.length) {
+            const continueUpdating: string[] = [];
+            toUpdate.forEach((key) => {
+                let f = input.get(key)!;
+                f = f.replace(new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'), (match, functionName) => input.get(functionName)!);
+                input.set(key, f);
+                if (!f.match(r)) {
+                    baseFunctions.push(key);
+                } else {
+                    continueUpdating.push(key);
+                }
+            });
+            if (continueUpdating.length === toUpdate.length) {
+                throw Error('cycle found in function references');
+            }
+            toUpdate = continueUpdating;
+        }
     }
     /**
      * these are all notion builtin functions and constants. The generator will convert these to the desired notion formula syntax when used correctly.

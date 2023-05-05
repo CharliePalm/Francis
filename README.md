@@ -4,9 +4,11 @@ Have you ever been writing a complicated formula in Notion and thought to yourse
 Well you're in luck, because this is a somewhat complicated but programmer friendly way of getting around the problematic syntax of Notion's formula API.
 With this tool you can simply write thoroughly compile checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
 
+Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, a notion is technically not even a programming language.
+
 ## Usage
 
-This usage guide assumes basic programming profficiency. You don't really need to be typescript expert but you should be familiar with the concept of basic logic and polymorphism
+This usage guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
 
     git clone https://github.com/CharliePalm/NotionFormulaGenerator
     cd NotionFormulaGenerator
@@ -18,13 +20,39 @@ Now create a typescript file and create your class based on the provided example
 Requirements for creating your formula() function:
 
 1. All if blocks must have an else block.
-2. Defining a variable is prohibited.
-3. Trailing commas are not allowed
-4. Ternary operators are not allowed but will be in a future release
+2. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability. Arrays are not allowed.
+3. Trailing commas are not allowed.
+4. Ternary operators are not allowed but will be in a future release.
+5. Empty if blocks are not allowed. This includes if blocks that define a constant.
+6. Loops are not allowed
+7. Function parameters are forbidden
+8. Global variables are forbidden
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
 Note that when adding functions you must create a mapping function to communicate to the compiler what functions to replace with what code. The parent class itself cannot effectively bind each method of the child class at compile time so it's necessary to add this yourself. See the example in MyFirstFormula.ts.
+
+You are allowed to reference other functions within helper functions, but cannot use recursion or call to the formula() method. This includes multi method recursion - the chain of method calls cannot contain a cycle.
+
+If you want to wrap logic in a function call, just execute the logic in a helper function and call it within the function you want to use as the wrapper.
+For example:
+
+    formula() {
+        this.round(this.doSomething())
+    }
+
+    doSomething() {
+        if (1 == 1) {
+            return 7 / 2;
+        } else {
+            return 9 / 4;
+        }
+    }
+Which effectively translates to:
+
+    round(if(1==1, 7/2, 9/4))
+
+Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
 ## FAQ
 

@@ -33,6 +33,13 @@ describe('helper functions', () => {
         it('should handle parentheses in return functions', () => {
             expect(getBlockContent('if(x==y){(x*y)+1<(3*x)+2}else{(x-y)*2+(3*x)*3}')).toEqual(['(x*y)+1<(3*x)+2', '(x-y)*2+(3*x)*3'])
         });
+
+        it('should handle simple fall through if blocks', () => {
+            expect(getBlockContent('if(test==1){1}2')).toEqual(['1', '2'])
+        });
+        it('should handle simple fall through if/else if blocks', () => {
+            expect(getBlockContent('if(test==1){1}elseif(test==-1){3}2')).toEqual(['1', 'if(test==-1){3}2'])
+        });
     });
 
     describe('get statement', () => {

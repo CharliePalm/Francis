@@ -5,9 +5,13 @@
  * @returns whatever is in between () and {} blocks
  */
 export function getStatement(block: string): string | undefined {
+    let index = block.indexOf('{');
+    // wrapper function case:
+    if (block.startsWith('this.') && (index != -1)) {
+        return block;
+    }
     // logic case
-    let index;
-    if ((index = block.indexOf('{')) != -1) {
+    if (index != -1) {
         while (index > 0) {
             index -= 1;
             if (block[index] == ')') {
@@ -24,13 +28,13 @@ export function getStatement(block: string): string | undefined {
  * gets the content of the block, including further logic
  * @param block 
  * @param start 
- * @returns 
+ * @returns [true block, false block]
  */
 export function getBlockContent(block: string, start = -1): [string, string | undefined] {
     start = start !== -1 ? start : block.indexOf('{');
     // base case: block is a return statement
     if (start == -1) {
-        return [block, undefined];
+        return [block.substring(0, block.lastIndexOf('}')), undefined];
     }
     let depth = 0;
     let index = start;
@@ -45,17 +49,32 @@ export function getBlockContent(block: string, start = -1): [string, string | un
     return [block.substring(start + 1, index), index + 1 !== block.length ? getFalseBlockContent(block, index) : undefined];
 }
 
-export function getFalseBlockContent(block: string, index: number): string {
+/**
+ * gets the false content of the block, provided the index of where the true block ended
+ * @param block the entire block, featuring both true and false content
+ * @param index the index where the false block ended
+ * @returns the parsed false block
+ */
+export function getFalseBlockContent(block: string, index: number): string | undefined {
     const falseBlock = block.substring(index + 1, block.length);
-    const blockContinues = falseBlock.startsWith('elseif');
-    const start = blockContinues ? 4 : falseBlock.indexOf('{') + 1
-    return falseBlock.substring(start, falseBlock.length - (blockContinues ? 0 : 1));
+    if (falseBlock.startsWith('else')) {
+        const blockContinues = falseBlock.startsWith('elseif');
+        const start = blockContinues ? 4 : falseBlock.indexOf('{') + 1
+        return falseBlock.substring(start, falseBlock.length - (blockContinues ? 0 : 1));
+    }
+    // fall through case
+    const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
+    // if the last part of the block is the fall through case we got lucky
+    return lastClosedBracketIdx == -1 ? falseBlock : falseBlock.substring(0, lastClosedBracketIdx);
+    // we'll handle this in the future. Right now we're just returning the false block in the error case but this indicates we'd have to fall out of the current if block.
+    // this is more hassle than it's worth to develop at the moment so I'm leaving this here for now but will update in the future
+    throw new Error('Please avoid nesting an if block with no else block. For example: if (1 == 1){ if (2 == 2) {}} should just be if (1==1 and 2==2) {}')
 }
 
 /**
- * converts a block
- * @param block
- * @returns 
+ * converts a block's object property references to the notion format
+ * @param block 
+ * @returns the converted block
  */
 export function convertBlockContent(block: string): string {
     const regex = /(?<!\w)this\.([a-zA-Z0-9_]*)(?=[^()[\]{}*+-/])/g;

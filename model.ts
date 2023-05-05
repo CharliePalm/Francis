@@ -100,4 +100,5 @@ export enum PropertyType {
 export enum NodeType {
     Logic,
     Return,
+    Wrapper,
 }
