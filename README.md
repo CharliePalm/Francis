@@ -4,7 +4,7 @@ Have you ever been writing a complicated formula in Notion and thought to yourse
 Well you're in luck, because this is a somewhat complicated but programmer friendly way of getting around the problematic syntax of Notion's formula API.
 With this tool you can simply write thoroughly compile checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
 
-Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, a notion is technically not even a programming language.
+Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, our low level code isn't technically even a programming language.
 
 ## Usage
 
