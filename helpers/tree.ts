@@ -64,10 +64,10 @@ export class Tree {
                 }
                 topPtr++;
             }
-            console.log(parsedStatement);
-            console.log(children);
+            // console.log(parsedStatement);
+            // console.log(children);
             const node = this.add(parsedStatement, parent, NodeType.Wrapper, onTrueSide);
-            console.log(statement);
+            // console.log(statement);
             children.forEach((childStatement) => {
                 this.dfp(childStatement, node, true);
             })

@@ -63,7 +63,7 @@ I chose typescript for this because of the well rounded interface and class typi
 Make sure that you followed the usage guide and are correctly invoking your subclass' compile function. If you think there is an issue with the codebase itself, feel free to report an issue. I would recommend making small changes to the sample code first before forging on your own.
 
 "This is too complicated. How am I supposed to make sense of all the rules and requirements?"\
-Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for.
+Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for. In addition, the point of this tool is to make complex formulas, and complexity in creating them is innate thereto.
 
 "Can I buy you a coffee?"\
 You sure can :)\

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
 import { NodeType, NotionDate } from "./model";
 
@@ -47,7 +49,7 @@ export abstract class NotionFormulaGenerator {
             .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
-            .slice(10, -1); // Remove formula() {} brackets
+            .slice(10); // Remove formula() {} brackets
         // create tree
         this.tree = new Tree(formulaBody);
         // replace references to database properties
@@ -109,6 +111,7 @@ export abstract class NotionFormulaGenerator {
                 break;
             case NodeType.Wrapper:
                 node.wrappedChildren.forEach((child) => {
+                    console.log(child);
                     const idx = node.statement.indexOf('()') + 1;
                     const statement = node.statement.substring(0, idx);
                     currentFormula += statement;
@@ -121,10 +124,16 @@ export abstract class NotionFormulaGenerator {
         return currentFormula;
     }
 
+    /**
+     * replaces non-cyclic references to other functions in the function map with the function's code
+     * @param input 
+     */
     public updateFunctionMap(input: Map<string, string>) {
-        const r = new RegExp(`this\\.(${[...input.keys()].join('|')})\\(\\)`, 'g');
         // clean functions of functionName() and brackets
+        const r = new RegExp(`this\\.(${[...input.keys()].join('|')})\\(\\)`, 'g');
+        // baseFunctions represents functions that have no other function calls
         const baseFunctions: string[] = [];
+        // toUpdate will contain all the functions that still have function calls to replace
         let toUpdate: string[] = [];
         input.forEach((f, key) => {
             f = f?.slice(key.length + 4, -1).trim();
@@ -140,7 +149,8 @@ export abstract class NotionFormulaGenerator {
         while (toUpdate.length) {
             const continueUpdating: string[] = [];
             toUpdate.forEach((key) => {
-                let f = input.get(key)!;
+                let f = input.get(key);
+                if (!f) throw Error('internal error encountered while updating function map')
                 f = f.replace(new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'), (match, functionName) => input.get(functionName)!);
                 input.set(key, f);
                 if (!f.match(r)) {

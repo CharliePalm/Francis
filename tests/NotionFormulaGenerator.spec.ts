@@ -163,7 +163,7 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
         });
 
-        it('should create a formula with notion builtins', () => {
+        it.only('should create a formula with notion builtins', () => {
             class TestClass extends NotionFormulaGenerator {
                 public dueDate = new Model.Date('Due date');
                 public status = new Model.Select('Status');

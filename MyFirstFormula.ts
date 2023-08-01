@@ -40,7 +40,7 @@ class MyFirstFormula extends NotionFormulaGenerator {
     }
 
     getDefaultPriority() {
-        return (this.round(this.difficulty.value + 100 / (this.completionPercent.value + 1)) / 2) * 
+        return (this.round((this.difficulty.value / 100) + 100 / (this.completionPercent.value + 1)) / 2) * 
             (this.log2(this.daysSinceLastWorkedOn() + 1) / (this.daysTillDue() + 1));
     }
 
