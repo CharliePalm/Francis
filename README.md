@@ -19,14 +19,13 @@ Now create a typescript file and create your class based on the provided example
 
 Requirements for creating your formula() function:
 
-1. All if blocks must have an else block.
-2. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability. Arrays are not allowed.
-3. Trailing commas are not allowed.
-4. Ternary operators are not allowed but will be in a future release.
-5. Empty if blocks are not allowed. This includes if blocks that define a constant.
-6. Loops are not allowed
-7. Function parameters are forbidden
-8. Global variables are forbidden
+1. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability, but all must be defined with the const keyword
+2. Trailing commas are not allowed
+3. Ternary operators are not currently allowed but will be in a future release
+4. Empty if blocks are not allowed
+5. Loops are not allowed
+6. Function parameters are forbidden
+7. Global variables are forbidden
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
@@ -38,7 +37,7 @@ If you want to wrap logic in a function call, just execute the logic in a helper
 For example:
 
     formula() {
-        this.round(this.doSomething())
+        this.round(this.doSomething() * 100) / 100
     }
 
     doSomething() {
@@ -50,7 +49,7 @@ For example:
     }
 Which effectively translates to:
 
-    round(if(1==1, 7/2, 9/4))
+    round(if(1==1, 7/2, 9/4) * 100) / 100
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
@@ -60,10 +59,10 @@ Above all, this isn't a full complier and shouldn't be treated as such, as the c
 I chose typescript for this because of the well rounded interface and class typing infrastructure. The main purpose of this codebase is type checking, so typescript seemed a natural choice therefrom.
 
 "My code doesn't work"\
-Make sure that you followed the usage guide and are correctly invoking your subclass' compile function. If you think there is an issue with the codebase itself, feel free to report an issue. I would recommend making small changes to the sample code first before forging on your own.
+Make sure that you followed the usage guide and are correctly invoking your subclass' compile function. If you think there is an issue with the codebase itself, feel free to report an issue (see the Reporting Bugs section). I would recommend making small changes to the sample code first before forging on your own.
 
 "This is too complicated. How am I supposed to make sense of all the rules and requirements?"\
-Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for. In addition, the point of this tool is to make complex formulas, and complexity in creating them is innate thereto.
+Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for. In addition, the point of this tool is to make complex formulas, and complexity in creating them is thereby innate.
 
 "Can I buy you a coffee?"\
 You sure can :)\
@@ -75,11 +74,15 @@ Submit a pull request (with unit test coverage please) and I'll happily review i
 
 ## Known Bugs
 
-Calling a wrapper function with arithmetic operators inside of the parentheses leads to parsing errors. i.e. this.round(functionCallHere() + 10) won't work for the time being. This is being addressed and will be fixed soon.
+As of 8/5/2023 there are no known bugs.
+
+## Reporting Bugs
+
+If you suspect you've encountered a bug with the codebase and NOT your implementation of it, please submit an issue with the typescript file containing your formula as well as the issue you're seeing.
 
 ## Future Plans
 
-If at all possible, I would like to expand the usage of variable definition, helper function invocation, and other such tools that Notion doesn't support. 
+If at all possible, I would like to expand the usage of variable definition, helper function invocation, and other such tools that Notion doesn't support.
 Doing so is going beyond a translator and quickly becoming a compiler but that's the one thing that I feel could really expand this project, though currently I have no plans or ideas on how to efficiently implement this.
 
 ## License

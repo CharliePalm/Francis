@@ -32,9 +32,9 @@ export abstract class NotionFormulaGenerator {
         const constMap = new Map<string, string>();
         // begin replacements
         const formulaBody = this.formula.toString()
-            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => functionMap.get(functionName)!) // replace function calls
+            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => functionMap.get(functionName) ?? match) // replace function calls
             .replace(/\/\/.*$/gm, '') // Remove all comments
-            // remove constant definitions
+            // remove constant definitions and populate the constant map
             .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, (_: string, var1: string, var2: string) => {
                 constMap.set(var1, var2);
                 return '';
@@ -60,7 +60,7 @@ export abstract class NotionFormulaGenerator {
     }
 
     /**
-     * replaces all refrences to db properties
+     * replaces all references to db properties
      * @param node 
      */
     public replaceProperties(node: Node): void {
@@ -74,7 +74,7 @@ export abstract class NotionFormulaGenerator {
     }
 
     /**
-     * replaces all refrences to builtin notion functions and typescript operators
+     * replaces all references to builtin notion functions and typescript operators
      * @param node 
      */
     public replaceFunctionsAndOperators(node: Node): void {
@@ -104,14 +104,13 @@ export abstract class NotionFormulaGenerator {
                 currentFormula += 'if(' + node.statement + ','
                 currentFormula = this.build(node.trueChild, currentFormula) + ',';
                 currentFormula = this.build(node.falseChild, currentFormula);
-                currentFormula += ')';
+                currentFormula += ')' + node.tail;
                 break;
             case NodeType.Return:
                 currentFormula += node.statement;
                 break;
             case NodeType.Wrapper:
                 node.wrappedChildren.forEach((child) => {
-                    console.log(child);
                     const idx = node.statement.indexOf('()') + 1;
                     const statement = node.statement.substring(0, idx);
                     currentFormula += statement;
@@ -119,6 +118,7 @@ export abstract class NotionFormulaGenerator {
                     currentFormula += ')';
                     node.statement = node.statement.substring(idx + 1, node.statement.length)
                 });
+                currentFormula += node.tail;
                 break;
         }
         return currentFormula;
@@ -151,7 +151,7 @@ export abstract class NotionFormulaGenerator {
             toUpdate.forEach((key) => {
                 let f = input.get(key);
                 if (!f) throw Error('internal error encountered while updating function map')
-                f = f.replace(new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'), (match, functionName) => input.get(functionName)!);
+                f = f.replace(new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'), (match, functionName) => input.get(functionName) ?? match);
                 input.set(key, f);
                 if (!f.match(r)) {
                     baseFunctions.push(key);
@@ -165,6 +165,7 @@ export abstract class NotionFormulaGenerator {
             toUpdate = continueUpdating;
         }
     }
+
     /**
      * these are all notion builtin functions and constants. The generator will convert these to the desired notion formula syntax when used correctly.
      * usage:
@@ -172,7 +173,7 @@ export abstract class NotionFormulaGenerator {
      * the typescript compiler will check if you're using the functions correctly, and the generator will convert properly if typescript finds no compile time errors 
      */
 
-    // contants
+    // constants
     e = 0;
     pi = 0;
     true = true;
@@ -188,7 +189,7 @@ export abstract class NotionFormulaGenerator {
     log10(value: number): number { return 0; }
     log2(value: number): number { return 0; }
     ln(value: number): number { return 0; }
-    exp(value: number): number { return 0}
+    exp(value: number): number { return 0; }
     unaryMinus(value: number): number { return 0; }
     unaryPlus(value: number): number { return 0; }
     max(...values: number[]): number { return 0; }

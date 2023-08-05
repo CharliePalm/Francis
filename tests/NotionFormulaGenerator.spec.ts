@@ -163,7 +163,7 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
         });
 
-        it.only('should create a formula with notion builtins', () => {
+        it('should create a formula with notion builtins', () => {
             class TestClass extends NotionFormulaGenerator {
                 public dueDate = new Model.Date('Due date');
                 public status = new Model.Select('Status');
@@ -292,7 +292,7 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual(`round(if(prop("Blocked"),abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))))+abs(-10)*log2(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
         });
 
-        it('should allow arithmetic expressions outside of wrapper function call', () => {
+        it('should allow arithmetic expressions (tails) outside of wrapper function call', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
@@ -314,7 +314,32 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3) * 100) / 100`);
+            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)*100)/100`);
+        });
+
+        it('should handle nested tails', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public status = new Model.Select('Status');
+                public blocked = new Model.Checkbox('Blocked');
+                formula(): any {
+                    return this.round(this.abs(this.getFormula() - 10) * 100) / 100;
+                }
+                
+                getFormula(): any {
+                    if (this.status.value == 'Done' || this.blocked.value) {
+                        return 7 / 2;
+                    } else {
+                        return 7 / 3;
+                    }
+                }
+
+                public buildFunctionMap(): Map<string, string> {
+                    return new Map([['getFormula', this.getFormula.toString()]]);
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual(`round(abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)-10)*100)/100`);
         });
 
         it('should work for extremely complex functions', () => {

@@ -41,6 +41,7 @@ export class Tree {
         const statement = getStatement(block);
         // no statement implies that getBlockContent returned our statement for us
         if (!statement) {
+            // return case
             this.add(block, parent, NodeType.Return, onTrueSide);
             return;
         } else if (statement == block) {
@@ -64,10 +65,13 @@ export class Tree {
                 }
                 topPtr++;
             }
-            // console.log(parsedStatement);
-            // console.log(children);
             const node = this.add(parsedStatement, parent, NodeType.Wrapper, onTrueSide);
-            // console.log(statement);
+            // if we've continued to iterate after the bottomPtr has been set to topPtr + 1, then we have a tail at the end of the wrapper
+            if (topPtr !== bottomPtr) {
+                // we don't want the tail to include the } character if the tail comes at the end of a return statement,
+                // so this bit of logic on the end takes care of that
+                node.tail = statement.substring(bottomPtr, statement[topPtr-1] !== '}' ? topPtr : topPtr - 1);
+            }
             children.forEach((childStatement) => {
                 this.dfp(childStatement, node, true);
             })
@@ -75,11 +79,19 @@ export class Tree {
             // logic case
             const node = this.add(statement, parent, NodeType.Logic, onTrueSide);
             const [t, f] = getBlockContent(block);
+
             this.dfp(t, node, true);
             if (!f) {
-                throw new Error('error processing input: every if block requires a paired else block');
+                throw new Error('error processing input: unexpected blank false block');
             }
-            this.dfp(f, node, false);   
+
+            let filteredFalseBlock = f;
+            // when we have a lone } char in the false block, that indicates that we have a tail (that comes after the } char)
+            if (f.indexOf('{') === -1 && f.indexOf('}') !== -1) {
+                filteredFalseBlock = f.substring(0, f.indexOf('}'));
+                node.tail = f.substring(f.indexOf('}') + 1, f.length);
+            }
+            this.dfp(filteredFalseBlock, node, false);   
         }
     }
     /**
@@ -103,8 +115,10 @@ export class Node {
     public trueChild!: Node;
     public falseChild!: Node;
     public wrappedChildren!: Node[];
-    constructor(public type: NodeType, public statement: string) {}
+    public tail = '';
 
+    constructor(public type: NodeType, public statement: string) {}
+    
     addTrueChild(child: Node) {
         if (this.type !== NodeType.Logic) {
             throw new Error('cannot add child to return node')
@@ -125,5 +139,9 @@ export class Node {
         }
         if (!this.wrappedChildren) this.wrappedChildren = [];
         this.wrappedChildren.push(child);
+    }
+
+    addTail(tail: string) {
+        this.tail = tail;
     }
 }

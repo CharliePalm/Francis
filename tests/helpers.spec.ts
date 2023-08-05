@@ -37,8 +37,17 @@ describe('helper functions', () => {
         it('should handle simple fall through if blocks', () => {
             expect(getBlockContent('if(test==1){1}2')).toEqual(['1', '2'])
         });
+
         it('should handle simple fall through if/else if blocks', () => {
             expect(getBlockContent('if(test==1){1}elseif(test==-1){3}2')).toEqual(['1', 'if(test==-1){3}2'])
+        });
+
+        it('should handle tails with elses', () => {
+            expect(getBlockContent('if(x==y){4}else{2}*2')).toEqual(['4', '2}*2'])
+        });
+
+        it('should handle tails with else ifs', () => {
+            expect(getBlockContent('if(x==y){4}elseif(a==b){3}else{2}*2')).toEqual(['4', 'if(a==b){3}else{2}*2'])
         });
     });
 

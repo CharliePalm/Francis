@@ -15,7 +15,7 @@ describe('buildTree', () => {
         try {
             const tree = new Tree(formula);
         } catch (e) {
-            expect(e.message).toEqual('error processing input: every if block requires a paired else block')
+            expect(e.message).toEqual('error processing input: unexpected blank false block')
         }
     });
 

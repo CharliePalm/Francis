@@ -31,7 +31,6 @@ export function getStatement(block: string): string | undefined {
  * @returns [true block, false block]
  */
 export function getBlockContent(block: string, start = -1): [string, string | undefined] {
-    console.log(block);
     start = start !== -1 ? start : block.indexOf('{');
     // base case: block is a return statement
     if (start == -1) {
@@ -58,12 +57,12 @@ export function getBlockContent(block: string, start = -1): [string, string | un
  */
 export function getFalseBlockContent(block: string, index: number): string | undefined {
     const falseBlock = block.substring(index + 1, block.length);
-    console.log(falseBlock);
     if (falseBlock.startsWith('else')) {
         const blockContinues = falseBlock.startsWith('elseif');
         // we need to get the logic in the if () part of the else if block if the block continues
         const start = blockContinues ? 4 : falseBlock.indexOf('{') + 1;
-        return falseBlock.substring(start, falseBlock.length - (blockContinues ? 0 : 1));
+        const endModifier = blockContinues || falseBlock.lastIndexOf('}') !== falseBlock.length - 1 ? 0 : 1;
+        return falseBlock.substring(start, falseBlock.length - endModifier);
     }
     // fall through case
     const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
