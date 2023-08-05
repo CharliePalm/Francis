@@ -14,7 +14,29 @@ class MyFirstFormula extends NotionFormulaGenerator {
     }
 
     buildFormula() {
-        return this.toNumber(this.join('a', 'b'));
+        const multiplier = 10;
+        if (this.status.value == 'Done' || this.blocked.value) {
+            return 0;
+        } else if (this.format(this.dueDate.value) == '') {
+            // for tasks with no real due date
+            if (this.status.value != 'In Progress') {
+                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * multiplier;
+            } else {
+                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * this.daysSinceLastWorkedOn();
+            }
+        } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 0) {
+            // for tasks that are overdue we need to finish them pronto
+            if (this.contains(this.tags.value, 'Must finish')) {
+                return 100 + this.difficulty.value;
+            } else {
+                return 100 - this.completionPercent.value + this.difficulty.value;
+            }
+        } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 7) {
+            return this.getDefaultPriority() * (7 / this.log2(this.daysTillDue()))
+        } else if (this.status.value == 'Not started') {
+            return this.getDefaultPriority() + 10;
+        }
+        return this.getDefaultPriority();
     }
 
     getDefaultPriority() {
