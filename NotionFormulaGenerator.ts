@@ -185,6 +185,7 @@ export abstract class NotionFormulaGenerator {
     abs(value: number): number { return 0; }
     mod(value: number, divisor: number): number { return 0; }
     sqrt(value: number): number { return 0; }
+    cbrt(value: number): number { return 0; }
     pow(base: number, exponent: number): number { return 0; }
     log10(value: number): number { return 0; }
     log2(value: number): number { return 0; }
@@ -195,37 +196,49 @@ export abstract class NotionFormulaGenerator {
     max(...values: number[]): number { return 0; }
     min(...values: number[]): number { return 0; }
     round(value: number): number { return 0; }
+    add(value: number | string, value2: number | string): number | string { return 0; }
+    subtract(value1: number, value2: number): number { return 0; }
+    sign(value: number): number { return 0; }
+    larger(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
+    largerEq(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
+    smaller(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
+    smallerEq(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
 
     // string operations
-    concat(...values: any): string { return ''; }
-    join(...values: any): string { return ''; }
-    slice(value: any, start: number, end?: number): string { return ''; }
-    length(value: any): string { return ''; }
-    format(value: any): string { return ''; }
-    toNumber(value: any): string { return ''; }
-    contains(value: any, toSearchFor: any): string { return ''; }
-    replace(value: any, toFind: any, toReplace: any): string { return ''; }
-    replaceAll(value: any, toFind: any, toReplace: any): string { return ''; }
-    test(value: any, toMatch: any): boolean { return true; }
-    empty(value: any): boolean { return true; }
+    concat(...values: string[]): string { return ''; }
+    // used for inserting the intermediary character in between the strings provided
+    join(intermediary: string, ...values: string[]): string { return ''; }
+    slice(value: string, start: number, end?: number): string { return ''; }
+    length(value: string): number { return 0; }
+    format(value: number | string | boolean | NotionDate): string { return ''; }
+    toNumber(value: number | string | boolean | NotionDate): number { return 0; }
+    contains(value: string, toSearchFor: string): boolean { return true; }
+    replace(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
+    replaceAll(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
+    test(value: number | string | boolean, toMatch: string): boolean { return true; }
+    empty(value: number | string | boolean | NotionDate): boolean { return true; }
 
     // date operations
     start(date: NotionDate): NotionDate { return {}; }
     end(date: NotionDate): NotionDate { return {}; }
     now(): NotionDate { return {}; }
-    timestamp(date: NotionDate): NotionDate { return 0; }
+    timestamp(date: NotionDate): number { return 0; }
     fromTimeStamp(timestamp: number): NotionDate { return {}; }
     dateAdd(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return {}; }
     dateSubtract(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return {}; }
     dateBetween(date1: NotionDate, date2: NotionDate, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): number { return 0; }
     formatDate(date: NotionDate, formatStr: string): string { return ''; }
-    minute(date: NotionDate): NotionDate { return 0; }
-    hour(date: NotionDate): NotionDate { return 0; }
-    // for day of the week
-    day(date: NotionDate): NotionDate { return 0; }
-    // for calendar day
-    date(date: NotionDate): NotionDate { return 0; }
+    // returns minute of current hour, 0-59
+    minute(date: NotionDate): number { return 0; }
+    // returns hour of the day, 0-23
+    hour(date: NotionDate): number { return 0; }
+    // for day of the week, 0-6
+    day(date: NotionDate): number { return 0; }
+    // for calendar day, 1-31
+    date(date: NotionDate): number { return 0; }
+    // for calendar month, 0-11
     month(date: NotionDate): NotionDate { return 0; }
+    // returns the year
     year(date: NotionDate): NotionDate { return 0; }
 
     // misc
@@ -233,4 +246,6 @@ export abstract class NotionFormulaGenerator {
     and(val1: any, val2: any): boolean { return true; }
     or(val1: any, val2: any): boolean { return true; }
     not(val: any): boolean { return true; }
+    equal(val1: any, val2: any): boolean { return true; }
+    unequal(val1: any, val2: any): boolean { return true; }
 }
