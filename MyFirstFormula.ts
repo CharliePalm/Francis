@@ -10,38 +10,15 @@ class MyFirstFormula extends NotionFormulaGenerator {
     public lastWorkedOn = new Model.Date('Last worked on');
 
     formula() {
-        return this.round(this.buildFormula() * 100) / 100;
+        return this.round(this.buildFormula());
     }
 
     buildFormula() {
-        const multiplier = 10;
-        if (this.status.value == 'Done' || this.blocked.value) {
-            return 0;
-        } else if (this.format(this.dueDate.value) == '') {
-            // for tasks with no real due date
-            if (this.status.value != 'In Progress') {
-                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * multiplier;
-            } else {
-                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * this.daysSinceLastWorkedOn();
-            }
-        } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 0) {
-            // for tasks that are overdue we need to finish them pronto
-            if (this.contains(this.tags.value, 'Must finish')) {
-                return 100 + this.difficulty.value;
-            } else {
-                return 100 - this.completionPercent.value + this.difficulty.value;
-            }
-        } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 7) {
-            return this.getDefaultPriority() * (7 / this.log2(this.daysTillDue()))
-        } else if (this.status.value == 'Not started') {
-            return this.getDefaultPriority() + 10;
-        }
-        return this.getDefaultPriority();
+        return this.daysTillDue();
     }
 
-    getDefaultPriority() {
-        return (this.round((this.difficulty.value / 100) + 100 / (this.completionPercent.value + 1)) / 2) * 
-            (this.log2(this.daysSinceLastWorkedOn() + 1) / (this.daysTillDue() + 1));
+    getPriorityFactor() {
+        return (this.difficulty.value / 100);
     }
 
     daysSinceLastWorkedOn() {
@@ -49,17 +26,24 @@ class MyFirstFormula extends NotionFormulaGenerator {
     }
 
     daysTillDue() {
-        return this.dateBetween(this.now(), this.lastWorkedOn.value, 'days');
+        return this.dateBetween(this.now(), this.dueDate.value, 'days');
+    }
+
+    /**
+     * priority is represented by a sigmoid that scales based on 
+     */
+    getPriority() {
+        return ((this.getPriorityFactor() / (this.max(this.daysTillDue(), 1))) / (1 + this.pow(this.e, -1 * this.daysSinceLastWorkedOn())));
     }
 
     buildFunctionMap(): Map<string, string> {
-        const functionMap = new Map();
-        functionMap
-            .set('getDefaultPriority', this.getDefaultPriority.toString())
-            .set('daysSinceLastWorkedOn', this.daysSinceLastWorkedOn.toString())
-            .set('daysTillDue', this.daysTillDue.toString())
-            .set('buildFormula', this.buildFormula.toString());
-        return functionMap;
+        return new Map([
+            ['getPriorityFactor', this.getPriorityFactor.toString()],
+            ['daysSinceLastWorkedOn', this.daysSinceLastWorkedOn.toString()],
+            ['daysTillDue', this.daysTillDue.toString()],
+            ['buildFormula', this.buildFormula.toString()],
+            ['getPriority', this.getPriority.toString()],
+        ]);
     }
 }
 

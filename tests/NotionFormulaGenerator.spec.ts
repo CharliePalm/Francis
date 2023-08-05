@@ -22,6 +22,19 @@ describe('notionFormulaGenerator', () => {
         });
     });
 
+    describe('base functionality', () => {
+        class BlankTestClass extends NotionFormulaGenerator {
+            formula() {
+                return 0;
+            }
+        }
+        it('should correctly parse a base return statement', () => {
+            const t = new BlankTestClass();
+            const result = t.compile();
+            expect(result).toEqual('0');
+        });
+    });
+
     describe('initial replacement', () => {
         describe('function calls', () => {
             class FunctionTestClass extends NotionFormulaGenerator {
@@ -159,8 +172,7 @@ describe('notionFormulaGenerator', () => {
             }
             
             const n = new TestClass();
-            const result = n.compile();
-            expect(result).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
+            expect(n.compile()).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
         });
 
         it('should create a formula with notion builtins', () => {
@@ -220,6 +232,34 @@ describe('notionFormulaGenerator', () => {
             const tc = new TestClass();
             const result = tc.compile();
             expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+        });
+
+        it('should allow nested wrapper function call with no logic', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public dueDate = new Model.Date('Due date');
+            
+                formula() {
+                    return this.round(this.buildFormula());
+                }
+            
+                buildFormula() {
+                    return this.daysTillDue();
+                }
+            
+                daysTillDue() {
+                    return this.dateBetween(this.now(), this.dueDate.value, 'days');
+                }
+            
+                buildFunctionMap(): Map<string, string> {
+                    return new Map([
+                        ['daysTillDue', this.daysTillDue.toString()],
+                        ['buildFormula', this.buildFormula.toString()],
+                    ]);
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual(`round(dateBetween(now(),prop("Due date"),'days'))`);
         });
 
         it('should allow multiple wrappers in a line', () => {

@@ -49,7 +49,7 @@ export abstract class NotionFormulaGenerator {
             .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
-            .slice(10); // Remove formula() {} brackets
+            .slice(10, -1); // Remove formula() {} brackets
         // create tree
         this.tree = new Tree(formulaBody);
         // replace references to database properties
