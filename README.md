@@ -82,8 +82,10 @@ If you suspect you've encountered a bug with the codebase and NOT your implement
 
 ## Future Plans
 
-If at all possible, I would like to expand the usage of variable definition, helper function invocation, and other such tools that Notion doesn't support.
-Doing so is going beyond a translator and quickly becoming a compiler but that's the one thing that I feel could really expand this project, though currently I have no plans or ideas on how to efficiently implement this.
+~If at all possible, I would like to expand the usage of variable definition, helper function invocation, and other such tools that Notion doesn't support.~
+~Doing so is going beyond a translator and quickly becoming a compiler but that's the one thing that I feel could really expand this project, though currently I have no plans or ideas on how to efficiently implement this.~
+
+The above is done! For now I think this is as far as this project can go without a major overhaul of the API itself on Notions end. For now, I'm calling it done until somebody tells me otherwise! Feel free to reach out with any functionality you think should be included.
 
 ## License
 [MIT License](https://opensource.org/licenses/MIT) 
