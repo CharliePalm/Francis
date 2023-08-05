@@ -9,18 +9,18 @@ class MyFirstFormula extends NotionFormulaGenerator {
     public completionPercent = new Model.Number('Completion %');
     public lastWorkedOn = new Model.Date('Last worked on');
 
-    formula(): any {
+    formula() {
         return this.round(this.buildFormula() * 100) / 100;
     }
 
-    buildFormula(): any {
-        const mult = 10;
+    buildFormula() {
+        const multiplier = 10;
         if (this.status.value == 'Done' || this.blocked.value) {
             return 0;
         } else if (this.format(this.dueDate.value) == '') {
             // for tasks with no real due date
             if (this.status.value != 'In Progress') {
-                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * mult;
+                return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * multiplier;
             } else {
                 return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * this.daysSinceLastWorkedOn();
             }

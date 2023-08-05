@@ -47,15 +47,15 @@ export class Phone extends Property {
 }
 
 export class Formula extends Property {
-    value?: any = '';
+    value = '';
 }
 
 export class Relation extends Property {
-    value?: any = '';
+    value = '';
 }
 
 export class Rollup extends Property {
-    value?: any = '';
+    value = '';
 }
 
 export class CreatedTime extends Property {

@@ -17,7 +17,7 @@ describe('notionFormulaGenerator', () => {
     describe('replaceDbProperties', () => {
         it('should properly replace db props', () => {
             const testClass = new BasicTestClass();
-            const result = testClass.compile();
+            testClass.compile();
             expect(testClass.tree.root.statement).toEqual('prop("test 1")==prop("test 2")')
         });
     });
@@ -173,7 +173,7 @@ describe('notionFormulaGenerator', () => {
                 public completionPercent = new Model.Number('Completion %');
                 public lastWorkedOn = new Model.Date('Last worked on');
                 
-                formula(): any {
+                formula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 0;
                     } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 0) {
@@ -201,11 +201,11 @@ describe('notionFormulaGenerator', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
-                formula(): any {
+                formula() {
                     return this.round(this.getFormula());
                 }
                 
-                getFormula(): any {
+                getFormula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 7 / 2;
                     } else {
@@ -226,11 +226,11 @@ describe('notionFormulaGenerator', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
-                formula(): any {
+                formula() {
                     return this.round(this.getFormula()) + this.abs(this.getVal()) * this.log2(this.getFormula());
                 }
                 
-                getFormula(): any {
+                getFormula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 7 / 2;
                     } else {
@@ -238,7 +238,7 @@ describe('notionFormulaGenerator', () => {
                     }
                 }
 
-                getVal(): any {
+                getVal() {
                     return -10;
                 }
 
@@ -255,11 +255,11 @@ describe('notionFormulaGenerator', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
-                formula(): any {
+                formula() {
                     return this.round(this.getWrapper()) + this.abs(this.getVal()) * this.log2(this.getFormula());
                 }
                 
-                getFormula(): any {
+                getFormula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 7 / 2;
                     } else {
@@ -267,11 +267,11 @@ describe('notionFormulaGenerator', () => {
                     }
                 }
 
-                getVal(): any {
+                getVal() {
                     return -10;
                 }
 
-                getWrapper(): any {
+                getWrapper() {
                     if (this.blocked.value) {
                         return this.abs(this.getFormula()) + this.floor(this.getFormula());
                     } else {
@@ -296,11 +296,11 @@ describe('notionFormulaGenerator', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
-                formula(): any {
+                formula() {
                     return this.round(this.getFormula() * 100) / 100;
                 }
                 
-                getFormula(): any {
+                getFormula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 7 / 2;
                     } else {
@@ -321,11 +321,11 @@ describe('notionFormulaGenerator', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');
                 public blocked = new Model.Checkbox('Blocked');
-                formula(): any {
+                formula() {
                     return this.round(this.abs(this.getFormula() - 10) * 100) / 100;
                 }
                 
-                getFormula(): any {
+                getFormula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 7 / 2;
                     } else {
@@ -352,14 +352,14 @@ describe('notionFormulaGenerator', () => {
                 public completionPercent = new Model.Number('Completion %');
                 public lastWorkedOn = new Model.Date('Last worked on');
             
-                formula(): any {
-                    const mult = 10;
+                formula() {
+                    const multiplier = 10;
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 0;
                     } else if (this.format(this.dueDate.value) == '') {
                         // for tasks with no real due date
                         if (this.status.value != 'In Progress') {
-                            return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * mult;
+                            return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * multiplier;
                         } else {
                             return (((this.difficulty.value + (100 / (this.completionPercent.value + 1)))) / 100) * this.daysSinceLastWorkedOn();
                         }

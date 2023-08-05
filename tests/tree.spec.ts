@@ -13,7 +13,7 @@ describe('buildTree', () => {
     it('should throw error when an else block is missing', () => {
         const formula = 'if(x-y){if(a+b==0){dostuff}elseif(x-y==1){dostuff}}else{elsedostuff}';
         try {
-            const tree = new Tree(formula);
+            new Tree(formula);
         } catch (e) {
             expect(e.message).toEqual('error processing input: unexpected blank false block')
         }
