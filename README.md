@@ -1,10 +1,10 @@
 # Formula Generator
 
-Have you ever been writing a complicated formula in Notion and thought to yourself: "man, this sucks! I wish there was literally any other way I could do this"?
-Well you're in luck, because this is a somewhat complicated but programmer friendly way of getting around the problematic syntax of Notion's formula API.
-With this tool you can simply write thoroughly compile checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
+This is a somewhat complicated but programmer friendly way of getting around the difficulty of writing large formulas in Notion.
 
-Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, our low level code isn't technically even a programming language.
+With this tool you can simply write thoroughly compile/type checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
+
+Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, our low level code isn't technically a programming language.
 
 ## Usage
 
@@ -13,23 +13,33 @@ This usage guide assumes basic programming proficiency. You don't really need to
     git clone https://github.com/CharliePalm/NotionFormulaGenerator
     cd NotionFormulaGenerator
     npm i
-Now create a typescript file and create your class based on the provided example, or just use the example file and replace with your DB properties and logic, then run
+Open the provided myFirstFormula file, and run
     
-    ts-node MyFile.ts
+    ts-node myFirstFormula.ts
+you should see the result:
+
+    if(prop("myProperty name"),1,0)
+Now that you've confirmed that everything is running smoothly, you can start creating your own formula. You can check out the example file at example.ts for a complicated formula example that uses all the functionality of the compiler, or just fill in the myFirstFormula.ts file with all the functionality you need.
+
+DB properties should be defined as they are in the example file. It doesn't matter what you name the variable, but the string you pass in to the constructor MUST be the name of the property. That is to say, in the following example code:
+
+    class Formula extends NotionFormulaGenerator {
+        public test = new Model.Number('test2')
+    }
+test2 is the name of the database property, not test.
 
 Requirements for creating your formula() function:
 
 1. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability, but all must be defined with the const keyword
 2. Trailing commas are not allowed
-3. Ternary operators are not currently allowed but will be in a future release
-4. Empty if blocks are not allowed
-5. Loops are not allowed
-6. Function parameters are forbidden
-7. Global variables are forbidden
+3. Empty if blocks are not allowed
+4. Loops are not allowed
+5. Function parameters are not allowed
+6. Global variables are not allowed
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
-Note that when adding functions you must create a mapping function to communicate to the compiler what functions to replace with what code. The parent class itself cannot effectively bind each method of the child class at compile time so it's necessary to add this yourself. See the example in MyFirstFormula.ts.
+Note that when adding functions you must create a mapping function to communicate to the compiler what functions to replace with what code. The parent class itself cannot effectively bind each method of the child class at compile time so it's necessary to add this yourself. See the examples in myFirstFormula.ts or example.ts.
 
 You are allowed to reference other functions within helper functions, but cannot use recursion or call to the formula() method. This includes multi method recursion - the chain of method calls cannot contain a cycle.
 
@@ -64,13 +74,16 @@ Make sure that you followed the usage guide and are correctly invoking your subc
 "This is too complicated. How am I supposed to make sense of all the rules and requirements?"\
 Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for. In addition, the point of this tool is to make complex formulas, and complexity in creating them is thereby innate.
 
+"Why is the compiler unhappy that I'm comparing a formula DB property?"\
+Typescript requires you to cast the variable (i.e. using the builtin toNumber or format methods) when dealing with formula variables because they technically could be of any type. Though this may be annoying, I'd recommend just creating a helper function that converts to your desired type so you don't have to keep doing it.
+
 "Can I buy you a coffee?"\
 You sure can :)\
 <a href="https://www.buymeacoffee.com/charliepalm" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
 ## Contributing
 
-Submit a pull request (with unit test coverage please) and I'll happily review it. Otherwise you're free to fork and use as you will.
+Submit a pull request (with unit test coverage please) and I'll happily review it. Otherwise you're free to fork and use as you will for your own PERSONAL purposes. If you use a formula generated by this tool for something that isn't exclusively for yourself please, at the bare minimum give it a shout-out :)
 
 ## Known Bugs
 

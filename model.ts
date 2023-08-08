@@ -47,7 +47,7 @@ export class Phone extends Property {
 }
 
 export class Formula extends Property {
-    value = '';
+    value: number | string | NotionDate | boolean = '';
 }
 
 export class Relation extends Property {
