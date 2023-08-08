@@ -60,6 +60,13 @@ For example:
 Which effectively translates to:
 
     round(if(1==1, 7/2, 9/4) * 100) / 100
+Alternatively, you can use ternary operators to the same effect:
+
+    formula() {
+        this.round((1 == 1 ? 7/2 : 9/4) * 100) / 100
+    }
+Which will lead to the same result, just with ternaries instead of the notion if function.
+
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
@@ -74,7 +81,7 @@ Make sure that you followed the usage guide and are correctly invoking your subc
 "This is too complicated. How am I supposed to make sense of all the rules and requirements?"\
 Much of the code's needless complexity is itself reliant upon Notion's API. Mitigating this would be incredibly difficult and something I do not currently have the time for. In addition, the point of this tool is to make complex formulas, and complexity in creating them is thereby innate.
 
-"Why is the compiler unhappy that I'm comparing a formula DB property?"\
+"Why is the compiler unhappy that I'm comparing a formula property with a number/string/boolean/date?"\
 Typescript requires you to cast the variable (i.e. using the builtin toNumber or format methods) when dealing with formula variables because they technically could be of any type. Though this may be annoying, I'd recommend just creating a helper function that converts to your desired type so you don't have to keep doing it.
 
 "Can I buy you a coffee?"\
