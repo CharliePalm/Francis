@@ -1,6 +1,6 @@
 # Formula Generator
 
-This is a somewhat complicated but programmer friendly way of getting around the difficulty of writing large formulas in Notion.
+This is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
 
 With this tool you can simply write thoroughly compile/type checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
 
