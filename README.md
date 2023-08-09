@@ -6,6 +6,17 @@ With this tool you can simply write thoroughly compile/type checked typescript l
 
 Above all, this is a pretty inefficient 'compiler' in the sense that it converts high level code (typescript) into low level code (notion formula). This is particularly difficult because unlike machine-level code, our low level code isn't technically a programming language.
 
+It does so through these steps:
+
+1. Build the function map of any helper methods
+2. Clean the text of the formula function: remove the return keyword, comments, whitespace, semicolons, etc. and replace typescript syntax with notion syntax (&& becomes and, etc.)
+3. Replace all constants with their values
+4. Build a binary tree of logic
+5. Replace all DB property references with the property's name
+6. Replace all function calls with their code
+7. Iterate over the tree's nodes from left to right (true to false) to build the tree
+8. Return the completed formula
+
 ## Usage
 
 This usage guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
@@ -41,7 +52,7 @@ Aside from these exceptions, if typescript compiles you should be good to go.
 
 Note that when adding functions you must create a mapping function to communicate to the compiler what functions to replace with what code. The parent class itself cannot effectively bind each method of the child class at compile time so it's necessary to add this yourself. See the examples in myFirstFormula.ts or example.ts.
 
-You are allowed to reference other functions within helper functions, but cannot use recursion or call to the formula() method. This includes multi method recursion - the chain of method calls cannot contain a cycle.
+You are allowed to reference other functions within helper functions, but cannot use recursion or call to the formula() method. This includes multi method recursion; the chain of method calls cannot contain a cycle.
 
 If you want to wrap logic in a function call, just execute the logic in a helper function and call it within the function you want to use as the wrapper.
 For example:
@@ -65,7 +76,7 @@ Alternatively, you can use ternary operators to the same effect:
     formula() {
         this.round((1 == 1 ? 7/2 : 9/4) * 100) / 100
     }
-Which will lead to the same result, just with ternaries instead of the notion if function.
+Which will lead to the same result, just with ternaries instead of the notion if() function.
 
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.

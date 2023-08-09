@@ -24,6 +24,10 @@ export abstract class NotionFormulaGenerator {
         return (this as {[key: string]: any})[property]
     }
 
+    /**
+     * compiles the subclass' formula function
+     * @returns the compiled formula
+     */
     public compile(): string {
         const functionMap = this.buildFunctionMap();
         // update function map to check if other functions reference each other
