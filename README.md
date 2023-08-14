@@ -1,6 +1,6 @@
-# Formula Generator
+# Francis
 
-This is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
+F.R.A.N.C.I.S. (Formula Readability And Notion Compilation Improvement Stack) is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
 
 With this tool you can simply write thoroughly compile/type checked typescript logic (with all of Notion's builtin functions) and have it translated to a formula quick and easy!
 
