@@ -208,16 +208,38 @@ describe('notionFormulaGenerator', () => {
             const result = tc.compile();
             expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),"days")<=0,100,if(prop("Status")=="Not started",(prop("Difficulty"))*(pi()/dateBetween(dateAdd(prop("Due date"),1,"days"),now(),"days")),dateBetween(prop("Last worked on"),now(),"days")*(prop("Difficulty")/(100+e())+e()))))`)
         });
-        /**
+        
         it('should create a formula using object style function calls', () => {
             class TestClass extends NotionFormulaGenerator {
-                public daysTillDue = new Model.MultiSelect('Test Property');
-                public priority = new Model.Number('Priority');
-                public formula(): number {
-                    if ()
-                    return this.priority.value / 2;
+                public testProp = new Model.MultiSelect('Test Property');
+                public dateProp = new Model.Date('date');
+                public formula(): Model.NotionDate {
+                    if (this.testProp.includes('test')) {
+                        return this.dateProp.dateAdd(1, 'days');
+                    }
+                    return this.now();
                 }
             }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
+        });
+
+        /** TODO:
+        it('should replace function calls that use a callback parameter', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public testProp = new Model.MultiSelect('Test Property');
+                public dateProp = new Model.Date('date');
+                public formula(): Model.NotionDate {
+                    if (this.testProp.map((index, current: Model.NotionString) => current.).includes('test')) {
+                        return this.dateProp.dateAdd(1, 'days');
+                    }
+                    return this.now();
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
         });
         */
 

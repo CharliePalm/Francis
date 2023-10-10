@@ -74,8 +74,8 @@ export class NotionNumber extends Property {
 }
 
 export class NotionDate extends Property {
-    dateSubtract(date: NotionDate): NotionDate { return this; }
-    dateAdd(date: NotionDate): NotionDate { return this; }
+    dateSubtract(num: number, unit: NotionDateType): NotionDate { return this; }
+    dateAdd(num: number, unit: NotionDateType): NotionDate { return this; }
     formatDate(): NotionDate { return this; }
 }
 
@@ -144,6 +144,8 @@ export type NotionType = Number | NotionString | string | number | boolean | Dat
 export type StyleType = 'u' | 'b' | 'i' | 'c' | 's' | 
     'gray' | 'brown' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 
     'gray_background' | 'brown_background' | 'orange_background' | 'yellow_background' | 'green_background' | 'blue_background' | 'purple_background' | 'pink_background' | 'red_background';
+
+export type NotionDateType = 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds';
 
 export enum PropertyType {
     Select,

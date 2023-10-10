@@ -9,7 +9,7 @@ class ExampleFormula extends NotionFormulaGenerator {
     public completionPercent = new Model.Number('Completion %');
     public lastWorkedOn = new Model.Date('Last worked on');
     public holdOff = new Model.Date('Hold off till date');
-        
+
     formula() {
         const shouldUsePriorityFactor = true; // flag for disabling priority factor while testing
         return this.round(this.buildFormula() * (shouldUsePriorityFactor ? this.getPriorityFactor() : 1));

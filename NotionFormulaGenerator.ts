@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person } from "./model";
+import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person, NotionDateType } from "./model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;
@@ -57,7 +57,6 @@ export abstract class NotionFormulaGenerator {
             .replace(/;/g, '') // Remove semicolons
             .slice(10, -1); // Remove formula() {} brackets
         // create tree
-        console.log(formulaBody);
         this.tree = new Tree(formulaBody);
         // replace references to database properties
         this.replaceProperties(this.tree.root);
@@ -68,11 +67,14 @@ export abstract class NotionFormulaGenerator {
 
     /**
      * replaces all references to db properties
-     * @param node 
+     * @param node
      */
     public replaceProperties(node: Node): void {
         if (!node) return;
+        // replace .value
         node.statement = node.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${this.getProperty(property)?.propertyName}")`);
+        // replace object method calls
+        node.statement = node.statement.replace(/this\.(\w+)\./g, (_, property) => `prop("${this.getProperty(property)?.propertyName}").`);
         this.replaceProperties(node.trueChild);
         this.replaceProperties(node.falseChild);
         node.wrappedChildren?.forEach((child) => {
@@ -249,9 +251,9 @@ export abstract class NotionFormulaGenerator {
     now(): NotionDate { return new NotionDate(); }
     timestamp(date: NotionDate): number { return 0; }
     fromTimestamp(timestamp: number): NotionDate { return new NotionDate(); }
-    dateAdd(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return new NotionDate(); }
-    dateSubtract(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return new NotionDate(); }
-    dateBetween(date1: NotionDate, date2: NotionDate, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): number { return 0; }
+    dateAdd(date: NotionDate, amount: number, units: NotionDateType): NotionDate { return new NotionDate(); }
+    dateSubtract(date: NotionDate, amount: number, units: NotionDateType): NotionDate { return new NotionDate(); }
+    dateBetween(date1: NotionDate, date2: NotionDate, units: NotionDateType): number { return 0; }
     formatDate(date: NotionDate, formatStr: string): string { return ''; }
     // returns minute of current hour, 0-59
     minute(date: NotionDate): number { return 0; }
