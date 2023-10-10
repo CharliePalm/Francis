@@ -172,7 +172,7 @@ describe('notionFormulaGenerator', () => {
             }
             
             const n = new TestClass();
-            expect(n.compile()).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
+            expect(n.compile()).toEqual(`if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))`)
         });
 
         it('should create a formula with notion builtins', () => {
@@ -192,7 +192,7 @@ describe('notionFormulaGenerator', () => {
                         return 100;
                     } else if (this.status.value == 'Not started') {
                         return (this.difficulty.value) * (
-                            this.pi / 
+                            this.pi() / 
                             this.dateBetween(
                                 this.dateAdd(this.dueDate.value, 1, 'days'), 
                                 this.now(), 
@@ -200,14 +200,26 @@ describe('notionFormulaGenerator', () => {
                             )
                         );
                     } else {
-                        return this.dateBetween(this.lastWorkedOn.value, this.now(), 'days') * (this.difficulty.value / (100 + this.e) + this.e)
+                        return this.dateBetween(this.lastWorkedOn.value, this.now(), 'days') * (this.difficulty.value / (100 + this.e()) + this.e())
                     }
                 }
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),'days')<=0,100,if(prop("Status")=='Not started',(prop("Difficulty"))*(pi/dateBetween(dateAdd(prop("Due date"),1,'days'),now(),'days')),dateBetween(prop("Last worked on"),now(),'days')*(prop("Difficulty")/(100+e)+e))))`)
+            expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),"days")<=0,100,if(prop("Status")=="Not started",(prop("Difficulty"))*(pi()/dateBetween(dateAdd(prop("Due date"),1,"days"),now(),"days")),dateBetween(prop("Last worked on"),now(),"days")*(prop("Difficulty")/(100+e())+e()))))`)
         });
+        /**
+        it('should create a formula using object style function calls', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public daysTillDue = new Model.MultiSelect('Test Property');
+                public priority = new Model.Number('Priority');
+                public formula(): number {
+                    if ()
+                    return this.priority.value / 2;
+                }
+            }
+        });
+        */
 
         it('should allow logic in functions', () => {
             class TestClass extends NotionFormulaGenerator {
@@ -231,7 +243,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow nested wrapper function call with no logic', () => {
@@ -259,7 +271,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(dateBetween(now(),prop("Due date"),'days'))`);
+            expect(result).toEqual(`round(dateBetween(now(),prop("Due date"),"days"))`);
         });
 
         it('should allow multiple wrappers in a line', () => {
@@ -288,7 +300,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))+abs(-10)*log2(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))+abs(-10)*log2(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow multiple wrappers outside of the root', () => {
@@ -329,7 +341,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Blocked"),abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))))+abs(-10)*log2(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Blocked"),abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))))+abs(-10)*log2(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow arithmetic expressions (tails) outside of wrapper function call', () => {
@@ -354,7 +366,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)*100)/100`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)*100)/100`);
         });
 
         it('should handle nested tails', () => {
@@ -379,7 +391,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)-10)*100)/100`);
+            expect(result).toEqual(`round(abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)-10)*100)/100`);
         });
 
         it('should work for extremely complex functions', () => {
@@ -442,7 +454,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new ComplexFormula();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(format(prop("Due date"))=='',if(prop("Status")!='In Progress',(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*10,(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*dateBetween(now(),prop("Last worked on"),'days')),if(dateBetween(prop("Due date"),now(),'days')<=0,if(contains(prop("Tags"),'Must finish'),100+prop("Difficulty"),100-prop("Completion %")+prop("Difficulty")),if(dateBetween(prop("Due date"),now(),'days')<=7,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1))*(7/log2(dateBetween(now(),prop("Last worked on"),'days'))),if(prop("Status")=='Not started',(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1))+10,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1)))))))`)
+            expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(format(prop("Due date"))=="",if(prop("Status")!="In Progress",(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*10,(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*dateBetween(now(),prop("Last worked on"),"days")),if(dateBetween(prop("Due date"),now(),"days")<=0,if(contains(prop("Tags"),"Must finish"),100+prop("Difficulty"),100-prop("Completion %")+prop("Difficulty")),if(dateBetween(prop("Due date"),now(),"days")<=7,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1))*(7/log2(dateBetween(now(),prop("Last worked on"),"days"))),if(prop("Status")=="Not started",(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1))+10,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1)))))))`)
         });
     });
 });

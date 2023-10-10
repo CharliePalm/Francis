@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, NotionDate } from "./model";
+import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person } from "./model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;
@@ -49,12 +49,15 @@ export abstract class NotionFormulaGenerator {
                 (match, constName) => 
                     constMap.get(constName) ?? match
                 )
+            .replace(/'/g, '"') // replace ' strings with "
+            .replace(/(?<!\d)(\.)(?=\d)/g, '0$1') // add 0 in front of decimals that are between 0 and 1 (new update to formula API)
             .replace(/if\s*\([^{}]*\)\s*{\s*}\s*(else\s+if\s*\([^{}]*\)\s*{\s*}\s*)*/g, '') // remove empty ifs
-            .replace(/'[^']*'|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
+            .replace(/"[^"]*"|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
             .slice(10, -1); // Remove formula() {} brackets
         // create tree
+        console.log(formulaBody);
         this.tree = new Tree(formulaBody);
         // replace references to database properties
         this.replaceProperties(this.tree.root);
@@ -69,7 +72,7 @@ export abstract class NotionFormulaGenerator {
      */
     public replaceProperties(node: Node): void {
         if (!node) return;
-        node.statement = node.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${this.getProperty(property)?.name}")`);
+        node.statement = node.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${this.getProperty(property)?.propertyName}")`);
         this.replaceProperties(node.trueChild);
         this.replaceProperties(node.falseChild);
         node.wrappedChildren?.forEach((child) => {
@@ -178,12 +181,12 @@ export abstract class NotionFormulaGenerator {
      */
 
     // constants
-    e = 0;
-    pi = 0;
     true = true;
     false = false;
 
     // math functions
+    pi(): number { return 0; }
+    e(): number { return 0; }
     floor(value: number): number { return 0; } 
     ceil(value: number): number { return 0; }
     abs(value: number): number { return 0; }
@@ -203,47 +206,65 @@ export abstract class NotionFormulaGenerator {
     add(value: number | string, value2: number | string): number | string { return 0; }
     subtract(value1: number, value2: number): number { return 0; }
     sign(value: number): number { return 0; }
-    larger(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
-    largerEq(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
-    smaller(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
-    smallerEq(value1: number | string | boolean | NotionDate, value2: number | string | boolean | NotionDate): boolean { return true; }
 
     // string operations
-    concat(...values: string[]): string { return ''; }
-    // used for inserting the intermediary character in between the strings provided
-    join(intermediary: string, ...values: string[]): string { return ''; }
-    slice(value: string, start: number, end?: number): string { return ''; }
-    length(value: string): number { return 0; }
+    concat(...values: NotionList[]): NotionList { return new NotionList(); }
+    // used for inserting the intermediary character in between the entries of the array
+    join(values: NotionList, intermediary: string): string { return ''; }
+    substring(value: string, start: number, end?: number): string { return ''; }
+    length(value: string | NotionList): number { return 0; }
     format(value: number | string | boolean | NotionDate): string { return ''; }
     toNumber(value: number | string | boolean | NotionDate): number { return 0; }
-    contains(value: string, toSearchFor: string): boolean { return true; }
+    contains(value: string | NotionList | any[], toSearchFor: string): boolean { return true; }
     replace(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
     replaceAll(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
     test(value: number | string | boolean, toMatch: string): boolean { return true; }
     empty(value: number | string | boolean | NotionDate): boolean { return true; }
+    match(value: string, regEx: string): NotionList { return new NotionList(); }
+    repeat(value: string, num: number): NotionString { return new NotionString(); }
+    link(value: string, link: string): NotionString { return new NotionString(); }
+    style(value: string, ...values: StyleType[]): NotionString { return new NotionString(); }
+    unstyle(value: string, ...values: StyleType[]): NotionString { return new NotionString(); }
+    parseDate(value: string): NotionDate { return new NotionDate(); }
+    split(value: string, splitter: string): NotionList { return new NotionList(); }
 
-    // date operations
-    start(date: NotionDate): NotionDate { return {}; }
-    end(date: NotionDate): NotionDate { return {}; }
-    now(): NotionDate { return {}; }
+    // array operations
+    map(list: NotionList | NotionType[], callback: (index: number, current: NotionType) => NotionType): NotionList { return new NotionList(); }
+    filter(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): NotionList { return new NotionList(); }
+    find(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): NotionList { return new NotionList();; }
+    findIndex(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): number { return 0; }
+    some(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): boolean { return true; }
+    every(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): boolean { return true; }
+    at(list: NotionList | NotionType[], index: number): NotionType { return ''; }
+    slice(list: NotionList | NotionType[], start: number, end?: number): NotionList { return new NotionList(); }
+    reverse(list: NotionList | NotionType[]): NotionList { return new NotionList(); }
+    sort(list: NotionList | NotionType[]): NotionList { return new NotionList(); }
+    unique(list: NotionList | NotionType[]): NotionList { return new NotionList(); }
+    includes(value: NotionType): boolean { return true; }
+    flat(list: NotionList | NotionType[]): NotionList { return new NotionList(); }
+
+    // Date operations
+    dateStart(date: NotionDate): NotionDate { return new NotionDate(); }
+    dateEnd(date: NotionDate): NotionDate { return new NotionDate(); }
+    now(): NotionDate { return new NotionDate(); }
     timestamp(date: NotionDate): number { return 0; }
-    fromTimeStamp(timestamp: number): NotionDate { return {}; }
-    dateAdd(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return {}; }
-    dateSubtract(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return {}; }
+    fromTimestamp(timestamp: number): NotionDate { return new NotionDate(); }
+    dateAdd(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return new NotionDate(); }
+    dateSubtract(date: NotionDate, amount: number, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): NotionDate { return new NotionDate(); }
     dateBetween(date1: NotionDate, date2: NotionDate, units: 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds'): number { return 0; }
     formatDate(date: NotionDate, formatStr: string): string { return ''; }
     // returns minute of current hour, 0-59
     minute(date: NotionDate): number { return 0; }
     // returns hour of the day, 0-23
     hour(date: NotionDate): number { return 0; }
-    // for day of the week, 0-6
+    // for day of the week, 1-7
     day(date: NotionDate): number { return 0; }
     // for calendar day, 1-31
-    date(date: NotionDate): number { return 0; }
-    // for calendar month, 0-11
-    month(date: NotionDate): NotionDate { return 0; }
+    NotionDate(date: NotionDate): number { return 0; }
+    // for calendar month, 1-12
+    month(date: NotionDate): number { return 0; }
     // returns the year
-    year(date: NotionDate): NotionDate { return 0; }
+    year(date: NotionDate): number { return 0; }
 
     // misc
     id(): string { return ''; }
@@ -252,4 +273,8 @@ export abstract class NotionFormulaGenerator {
     not(val: any): boolean { return true; }
     equal(val1: any, val2: any): boolean { return true; }
     unequal(val1: any, val2: any): boolean { return true; }
+
+    // built in properties:
+    createdTime = new NotionDate('Created Time');
+    createdBy = new Person('Created By');
 }
