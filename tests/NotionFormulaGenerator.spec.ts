@@ -225,13 +225,12 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
         });
 
-        /** TODO:
         it('should replace function calls that use a callback parameter', () => {
             class TestClass extends NotionFormulaGenerator {
-                public testProp = new Model.MultiSelect('Test Property');
+                public testProp = new Model.MultiSelect<Model.NotionString>('Test Property');
                 public dateProp = new Model.Date('date');
                 public formula(): Model.NotionDate {
-                    if (this.testProp.map((index, current: Model.NotionString) => current.).includes('test')) {
+                    if (this.testProp.map((index, current) => current.lower()).includes('test')) {
                         return this.dateProp.dateAdd(1, 'days');
                     }
                     return this.now();
@@ -241,7 +240,6 @@ describe('notionFormulaGenerator', () => {
             const result = tc.compile();
             expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
         });
-        */
 
         it('should allow logic in functions', () => {
             class TestClass extends NotionFormulaGenerator {

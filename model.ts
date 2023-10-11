@@ -14,22 +14,23 @@ export class Property {
     unequal(): boolean { return true; }
 }
 
-export class NotionList extends Property {
-    map(callback: (index: number, current: NotionType) => NotionType): NotionList { return this; }
-    filter(callback: (current: NotionType) => boolean): NotionList { return this; }
-    find(callback: (current: NotionType) => boolean): NotionList { return this; }
-    findIndex(callback: (current: NotionType) => boolean): number { return 0; }
-    some(callback: (current: NotionType) => boolean): boolean { return true; }
-    every(callback: (current: NotionType) => boolean): boolean { return true; }
-    at(index: number): NotionType { return ''; }
-    slice(start: number, end?: number): NotionList { return this; }
-    concat(...values: NotionList[]): NotionList { return this; }
-    reverse(): NotionList { return this; }
-    sort(): NotionList { return this; }
+export class NotionList<T> extends Property {
+    map(callback: (index: number, current: T) => NotionList<T>): NotionList<T> { return this; }
+    filter(callback: (current: T) => boolean): NotionList<T> { return this; }
+    find(callback: (current: T) => boolean): NotionList<T> { return this; }
+    findIndex(callback: (current: T) => boolean): number { return 0; }
+    some(callback: (current: T) => boolean): boolean { return true; }
+    every(callback: (current: T) => boolean): boolean { return true; }
+    match(regEx: string): NotionList<T> { return this; }
+    at(index: number): T { return '' as T; }
+    slice(start: number, end?: number): NotionList<T> { return this; }
+    concat(...values: any[]): NotionList<T> { return this; }
+    reverse(): NotionList<T> { return this; }
+    sort(): NotionList<T> { return this; }
     join(intermediary: string): string { return ''; }
-    unique(): NotionList { return this; }
-    includes(value: NotionType): boolean { return true; }
-    flat(): NotionList { return this; }
+    unique(): NotionList<T> { return this; }
+    includes(value: T): boolean { return true; }
+    flat(): NotionList<T> { return this; }
 }
 
 export class NotionString extends Property {
@@ -37,7 +38,7 @@ export class NotionString extends Property {
     substring(start: number, end?: number): string { return ''; }
     contains(toSearchFor: string): boolean { return true; }
     test(toMatch: string): boolean { return true; }
-    match(regEx: string): NotionList { return new NotionList(); }
+    match(regEx: string): NotionList<NotionString> { return new NotionList(); }
     replace(toFind: string, toReplace: string): string { return ''; }
     replaceAll(toFind: string, toReplace: string): string { return ''; }
     lower(): NotionString { return this; }
@@ -47,7 +48,7 @@ export class NotionString extends Property {
     unstyle(...values: StyleType[]): NotionString { return this; }
     toNumber(): number { return 0; }
     parseDate(): Date { return new Date(); }
-    split(splitter: string): NotionList { return new NotionList(); }
+    split(splitter: string): NotionList<NotionString> { return new NotionList<NotionString>(); }
 }
 
 // properties
@@ -108,8 +109,8 @@ export class Formula extends Property {
     value: NotionType;
 }
 
-export class MultiSelect extends NotionList {
-    value: any[] | string;
+export class MultiSelect<T = NotionString | string> extends NotionList<T> {
+    value: NotionList<T>;
 }
 
 export class Select extends NotionString {
@@ -126,8 +127,8 @@ export class Phone extends Text {}
 
 export class Relation extends Formula {}
 
-export class Rollup extends Property {
-    value: NotionList;
+export class Rollup<T = NotionList<any>> extends Property {
+    value: T;
 }
 
 export class CreatedTime extends Date {}
@@ -139,7 +140,7 @@ export class LastEditedTime extends Date {}
 export class LastEditedBy extends Person {}
 
 // System
-export type NotionType = Number | NotionString | string | number | boolean | Date | Person | NotionList;
+export type NotionType = NotionNumber | NotionString | string | number | boolean | NotionDate | NotionPerson | NotionList<any>;
 
 export type StyleType = 'u' | 'b' | 'i' | 'c' | 's' | 
     'gray' | 'brown' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 
