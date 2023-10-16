@@ -1,4 +1,4 @@
-
+import { Node } from './tree';
 /**
  * returns the first instance of logic enclosed in brackets or parentheses
  * @param block - the block to parse
@@ -81,4 +81,48 @@ export function getFalseBlockContent(block: string, index: number): string | und
 export function convertBlockContent(block: string): string {
     const regex = /(?<!\w)this\.([a-zA-Z0-9_]*)(?=[^()[\]{}*+-/])/g;
     return block.replace(regex, 'prop("$1")');
+}
+
+/**
+ * 
+ */
+export function getCallbackStatement(block: string): string[] {
+    let index = 0;
+    let lastOpenParenthesesIndex = -1;
+    let inCallback = false;
+    let depth = 0;
+    const callbacks: string[] = [];
+    while (index < block.length - 1) {
+        if (block[index] == '(') {
+            if (!inCallback) {
+                lastOpenParenthesesIndex = index;
+            }
+            depth = inCallback ? depth + 1 : 1;
+        } else if (block[index] == ')' && inCallback) {
+            depth -= 1;
+            if (depth == 0) {
+                callbacks.push(block.substring(lastOpenParenthesesIndex, index));
+                inCallback = false;
+            }
+        }
+
+        if (block[index].concat(block[index+1]) == '=>') {
+            inCallback = true;
+        }
+        index++;
+    }
+    return callbacks;
+}
+
+export function parseCallbackStatement(callback: string): string {
+    if(!callback) return callback;
+    const paramString = callback.substring(1, callback.indexOf(')'));
+    const params = paramString.replace(' ', '').split(',');
+    params.forEach((param, index) => {
+        callback = callback.replace(
+            new RegExp(param, 'g'),
+            params.length === 1 || index === 1 ? 'current' : 'index',
+        );
+    });
+    return callback.substring(callback.indexOf('=>') + 2);
 }

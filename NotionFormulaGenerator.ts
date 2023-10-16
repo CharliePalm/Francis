@@ -16,15 +16,6 @@ export abstract class NotionFormulaGenerator {
     }
 
     /**
-     * returns the object associated with the property
-     * @param property 
-     * @returns 
-     */
-    public getProperty(property: string): any {
-        return (this as {[key: string]: any})[property]
-    }
-
-    /**
      * compiles the subclass' formula function
      * @returns the compiled formula
      */
@@ -59,46 +50,9 @@ export abstract class NotionFormulaGenerator {
         // create tree
         this.tree = new Tree(formulaBody);
         // replace references to database properties
-        this.replaceProperties(this.tree.root);
-        this.replaceFunctionsAndOperators(this.tree.root);
+        this.tree.root.replaceProperties((this as {[key: string]: any}));
         const endResult = this.build(this.tree.root, '');
         return endResult;
-    }
-
-    /**
-     * replaces all references to db properties
-     * @param node
-     */
-    public replaceProperties(node: Node): void {
-        if (!node) return;
-        // replace .value
-        node.statement = node.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${this.getProperty(property)?.propertyName}")`);
-        // replace object method calls
-        node.statement = node.statement.replace(/this\.(\w+)\./g, (_, property) => `prop("${this.getProperty(property)?.propertyName}").`);
-        this.replaceProperties(node.trueChild);
-        this.replaceProperties(node.falseChild);
-        node.wrappedChildren?.forEach((child) => {
-            this.replaceProperties(child);
-        });
-    }
-
-    /**
-     * replaces all references to builtin notion functions and typescript operators
-     * @param node 
-     */
-    public replaceFunctionsAndOperators(node: Node): void {
-        if (!node) return;
-        // replace all uses of this. with '', && with and, || with or, and ! with not when not followed by an equals sign
-        node.statement = node.statement
-            .replace(/this\./g, '')
-            .replace(/&&/g, ' and ')
-            .replace(/\|\|/g, ' or ')
-            .replace(/!(?!=)/g, ' not ');
-        this.replaceFunctionsAndOperators(node.trueChild);
-        this.replaceFunctionsAndOperators(node.falseChild);
-        node.wrappedChildren?.forEach((child) => {
-            this.replaceFunctionsAndOperators(child);
-        });
     }
 
     /**
@@ -210,7 +164,7 @@ export abstract class NotionFormulaGenerator {
     sign(value: number): number { return 0; }
 
     // string operations
-    concat(...values: NotionList[]): NotionList { return new NotionList(); }
+    concat(...values: NotionType[]): NotionList { return new NotionList(); }
     // used for inserting the intermediary character in between the entries of the array
     join(values: NotionList, intermediary: string): string { return ''; }
     substring(value: string, start: number, end?: number): string { return ''; }
@@ -233,7 +187,7 @@ export abstract class NotionFormulaGenerator {
     // array operations
     map(list: NotionList | NotionType[], callback: (index: number, current: NotionType) => NotionType): NotionList { return new NotionList(); }
     filter(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): NotionList { return new NotionList(); }
-    find(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): NotionList { return new NotionList();; }
+    find(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): NotionList { return new NotionList(); }
     findIndex(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): number { return 0; }
     some(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): boolean { return true; }
     every(list: NotionList | NotionType[], callback: (current: NotionType) => boolean): boolean { return true; }
