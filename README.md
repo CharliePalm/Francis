@@ -5,8 +5,7 @@ The API has been changed to include object-esque references, and this leads to p
     // define DB property as being Notion's 'text' type:
     const myText = new Model.Text('');
     // ideally, we could both compare, and access the member methods of myText:
-    myText.length(); // compiler should allow since length is a function call, not a property in the new API
-    myText.
+    myText.upper();
     const myOtherText = new Model.Text('');
     myOtherText === myText; // compiler should allow as we can compare strings in Notion
     myOtherText === 'test'; // compiler should allow as we can compare primitive strings in Notion
