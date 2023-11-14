@@ -1,3 +1,22 @@
+# UPDATE 11/2023:
+Notion has upgraded their formula API, and as such, Francis needs an update too. This is almost done, but I may have to sacrifice some ease of use for more difficult functionality.
+The API has been changed to include object-esque references, and this leads to primitive operations breaking down if we define these object types. For example:
+
+    // define DB property as being Notion's 'text' type:
+    const myText = new Model.Text('');
+    // ideally, we could both compare, and access the member methods of myText:
+    myText.length(); // compiler should allow since length is a function call, not a property in the new API
+    myText.
+    const myOtherText = new Model.Text('');
+    myOtherText === myText; // compiler should allow as we can compare strings in Notion
+    myOtherText === 'test'; // compiler should allow as we can compare primitive strings in Notion
+
+The third case is where my current implementation of the compiler is breaking down.
+I've done some troubleshooting as defining a 'notion string type' as both the union and the intersection of the primitive string and the NotionString, but to no avail. 
+I'm still working on this, just wanted to let everyone know that this is still in progress, and I haven't abandoned the project. If you have any suggestions here, let me know - as long as this header is on the readme I don't have a solution.
+
+It's also possible that I'm overthinking this, and most people won't create formulas complex enough to utilize 100% of this functionality anyways, but I don't want users to be potentially held back from creating super complex formulas by anything.
+
 # Francis
 
 F.R.A.N.C.I.S. (Formula Readability And Notion Compilation Improvement Stack) is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
@@ -113,10 +132,7 @@ If you suspect you've encountered a bug with the codebase and NOT your implement
 
 ## Future Plans
 
-~If at all possible, I would like to expand the usage of variable definition, helper function invocation, and other such tools that Notion doesn't support.~
-~Doing so is going beyond a translator and quickly becoming a compiler but that's the one thing that I feel could really expand this project, though currently I have no plans or ideas on how to efficiently implement this.~
-
-The above is done! For now I think this is as far as this project can go without a major overhaul of the API itself on Notions end. For now, I'm calling it done until somebody tells me otherwise! Feel free to reach out with any functionality you think should be included.
+As the header above mentions, updates are still needed for full functionatliy with Notion's new API. The current release doesn't support most of the update.
 
 ## License
 [MIT License](https://opensource.org/licenses/MIT) 
