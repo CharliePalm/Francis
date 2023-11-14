@@ -16,6 +16,8 @@ I'm still working on this, just wanted to let everyone know that this is still i
 
 It's also possible that I'm overthinking this, and most people won't create formulas complex enough to utilize 100% of this functionality anyways, but I don't want users to be potentially held back from creating super complex formulas by anything.
 
+You can access the partially completed code in the 'update' branch if you want to create formulas with the new API, it just will not have full functionality.
+
 # Francis
 
 F.R.A.N.C.I.S. (Formula Readability And Notion Compilation Improvement Stack) is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
