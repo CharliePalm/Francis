@@ -9,67 +9,69 @@ export class Property {
     or(): boolean { return true; }
     not(): boolean { return true; }
     empty(): boolean { return true; }
-    format(): NotionStringType { return ''; }
+    format(): NotionString { return {} as NotionString; }
     equal(): boolean { return true; }
     unequal(): boolean { return true; }
 }
 
-export class NotionList<T = NotionType> extends Property {
-    map(callback: (index: NotionNumberType, current: T) => NotionType): NotionList<any> { return this; }
-    filter(callback: (current: T) => boolean): NotionList<T> { return this; }
-    find(callback: (current: T) => boolean): NotionList<T> { return this; }
-    findIndex(callback: (current: T) => boolean): NotionNumberType { return 0; }
+export class NotionList<T = any> extends Property {
+    value: T;
+    // lists do not include a value because comparisons between arrays in general shouldn't be done. 
+    map(callback: (index: NotionNumber, current: T) => NotionType): NotionList { return this; }
+    filter(callback: (current: T) => boolean): NotionList { return this; }
+    find(callback: (current: T) => boolean): NotionList { return this; }
+    findIndex(callback: (current: T) => boolean): number { return 0; }
     some(callback: (current: T) => boolean): boolean { return true; }
     every(callback: (current: T) => boolean): boolean { return true; }
-    match(regEx: NotionStringType): NotionList<T> { return this; }
-    at(index: NotionNumberType): T { return '' as T; }
-    slice(start: NotionNumberType, end?: NotionNumberType): NotionList<T> { return this; }
-    concat(...values: NotionType[]): NotionList<T> { return this; }
-    reverse(): NotionList<T> { return this; }
-    sort(): NotionList<T> { return this; }
-    join(intermediary: NotionStringType): NotionStringType { return ''; }
-    unique(): NotionList<T> { return this; }
-    includes(value: T): boolean { return true; }
-    flat(): NotionList<T> { return this; }
+    at(index: NotionNumberType): T { return this.value; }
+    slice(start: NotionNumberType, end?: NotionNumberType): NotionList { return this; }
+    concat(...values: NotionList[]): NotionList { return this; }
+    reverse(): NotionList { return this; }
+    sort(): NotionList { return this; }
+    join(intermediary: NotionStringType): string { return ''; }
+    unique(): NotionList { return this; }
+    includes(value: NotionType): boolean { return true; }
+    flat(): NotionList { return this; }
 }
 
 export class NotionString extends Property {
-    length(): NotionNumberType { return 0; }
-    substring(start: NotionNumberType, end?: NotionNumberType): NotionStringType { return ''; }
+    value: string;
+    length(): NotionNumber { return {} as NotionNumber; } // unfortunately, notion and typescript disagree on the type signature here. We'll add the () when we compile the formula
+    substring(start: number, end?: number): NotionString { return this; }
     contains(toSearchFor: NotionStringType): boolean { return true; }
     test(toMatch: NotionStringType): boolean { return true; }
-    match(regEx: NotionStringType): NotionList<NotionString> { return new NotionList(); }
-    replace(toFind: NotionStringType, toReplace: NotionStringType): NotionStringType { return ''; }
-    replaceAll(toFind: NotionStringType, toReplace: NotionStringType): NotionStringType { return ''; }
-    lower(): NotionStringType { return this; }
-    upper(): NotionStringType { return this; }
-    link(link: NotionStringType): NotionStringType { return this; }
-    style(...values: StyleType[]): NotionStringType { return this; }
-    unstyle(...values: StyleType[]): NotionStringType { return this; }
-    toNumber(): NotionNumberType { return 0; }
+    match(regEx: NotionStringType): NotionList { return new NotionList(); }
+    replace(toFind: NotionStringType, toReplace: NotionStringType): NotionString { return this; }
+    replaceAll(toFind: NotionStringType, toReplace: NotionStringType): NotionString { return this; }
+    lower(): NotionString { return this; }
+    upper(): NotionString { return this; }
+    link(link: string): NotionString { return this; }
+    style(...values: StyleType[]): NotionString { return this; }
+    unstyle(...values: StyleType[]): NotionString { return this; }
+    toNumber(): number { return 0; }
     parseDate(): Date { return new Date(); }
-    split(splitter: NotionStringType): NotionList<NotionStringType> { return new NotionList<NotionStringType>(); }
+    split(splitter: NotionStringType): NotionList { return new NotionList(); }
 }
 
-// properties
 export class NotionNumber extends Property {
-    floor(): NotionNumberType { return this; } 
-    ceil(): NotionNumberType { return this; }
-    abs(): NotionNumberType { return this; }
-    mod(divisor: NotionNumberType): NotionNumberType { return this; }
-    sqrt(): NotionNumberType { return this; }
-    cbrt(): NotionNumberType { return this; }
-    pow(exponent: NotionNumberType): NotionNumberType { return this; } // returns this as base to the exponent
-    log10(): NotionNumberType { return this; }
-    log2(): NotionNumberType { return this; }
-    ln(): NotionNumberType { return this; }
-    exp(): NotionNumberType { return this; } // returns e to the this
-    max(...values: NotionNumberType[]): NotionNumberType { return this; }
-    min(...values: NotionNumberType[]): NotionNumberType { return this; }
-    round(): NotionNumberType { return this; }
-    add(value2: NotionNumberType): NotionNumberType { return this; }
-    subtract(value1: NotionNumberType, value2: NotionNumberType): NotionNumberType { return this; }
-    sign(): NotionNumberType { return this; }
+    value = 0;
+    floor(): NotionNumber { return this; } 
+    ceil(): NotionNumber { return this; }
+    abs(): NotionNumber { return this; }
+    mod(divisor: NotionNumber): NotionNumber { return this; }
+    sqrt(): NotionNumber { return this; }
+    cbrt(): NotionNumber { return this; }
+    pow(exponent: NotionNumber): NotionNumber { return this; } // returns this as base to the exponent
+    log10(): NotionNumber { return this; }
+    log2(): NotionNumber { return this; }
+    ln(): NotionNumber { return this; }
+    exp(): NotionNumber { return this; } // returns e to the this
+    max(...values: NotionNumberType[]): NotionNumber { return this; }
+    min(...values: NotionNumberType[]): NotionNumber { return this; }
+    round(): NotionNumber { return this; }
+    add(value2: NotionNumberType): NotionNumber { return this; }
+    subtract(value1: NotionNumberType, value2: NotionNumberType): NotionNumber { return this; }
+    sign(): NotionNumber { return this; }
     divide(denom: NotionNumberType) { return this; }
     fromTimestamp(): Date {return new Date(); }
 }
@@ -77,24 +79,21 @@ export class NotionNumber extends Property {
 export class NotionDate extends Property {
     dateSubtract(num: number, unit: NotionDateType): NotionDate { return this; }
     dateAdd(num: number, unit: NotionDateType): NotionDate { return this; }
-    formatDate(): NotionDate { return this; }
+    formatDate(format: string): NotionString { return {} as NotionString; }
 }
 
 export class NotionPerson extends Property {
-    name(): NotionStringType { return '' }
-    email(): NotionStringType { return '' }
+    name(): NotionString { return {} as NotionString; }
+    email(): NotionString { return {} as NotionString; }
 }
 
+// properties
 export class Person extends NotionPerson {
     value: NotionPerson;
 }
 
-export class Text extends NotionString {
-    value: NotionStringType;
-}
-
 export class Number extends NotionNumber {
-    value: NotionNumberType;
+    value: number;
 }
 
 export class Date extends NotionDate {
@@ -105,17 +104,13 @@ export class Checkbox extends Property {
     value: boolean;
 }
 
-export class Formula extends Property {
-    value: NotionType;
+export class Formula<T = any> extends Property {
+    value: T;
 }
 
-export class MultiSelect<T = NotionStringType> extends NotionList<T> {
-    value: NotionList<T>;
-}
+export class Text extends NotionString {}
 
-export class Select extends NotionString {
-    value: NotionStringType;
-}
+export class Select extends NotionString {}
 
 export class File extends Text {}
 
@@ -127,9 +122,9 @@ export class Phone extends Text {}
 
 export class Relation extends Formula {}
 
-export class Rollup<T = NotionList<NotionType>> extends Property {
-    value: T;
-}
+export class MultiSelect<T = any> extends NotionList<T> {}
+
+export class Rollup<T = any> extends  NotionList<T> {}
 
 export class CreatedTime extends Date {}
 
@@ -140,7 +135,7 @@ export class LastEditedTime extends Date {}
 export class LastEditedBy extends Person {}
 
 // System
-export type NotionType = NotionNumberType | NotionStringType | boolean | NotionDate | NotionPerson | NotionList<any> | (NotionStringType & NotionNumberType & boolean & NotionDate & NotionPerson & NotionList<any>);
+export type NotionType = NotionNumber | NotionString | string | number | boolean | NotionList | NotionDate | NotionPerson;
 
 export type StyleType = 'u' | 'b' | 'i' | 'c' | 's' | 
     'gray' | 'brown' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'red' | 
@@ -148,9 +143,9 @@ export type StyleType = 'u' | 'b' | 'i' | 'c' | 's' |
 
 export type NotionDateType = 'years' | 'quarters' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds' | 'milliseconds';
 
-export type NotionStringType = NotionString | string | (NotionString & string);
+export type NotionStringType = NotionString & string | string | NotionString;
 
-export type NotionNumberType = NotionNumber | number | (NotionNumber & number);
+export type NotionNumberType = NotionNumber & number | number | NotionNumber;
 
 export enum PropertyType {
     Select,

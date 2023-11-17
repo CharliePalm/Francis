@@ -220,13 +220,19 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
         });
 
+        describe('primitive compare replaces', () => {
+            it('replaces the .value for primitive comparisons', () => {
+                // TODO
+            });
+        });
+
         describe('callbacks', () => {
             it('should replace function calls that use a callback parameter', () => {
                 class TestClass extends NotionFormulaGenerator {
-                    public testProp = new Model.MultiSelect('Test Property');
+                    public testProp = new Model.MultiSelect<Model.NotionString>('Test Property');
                     public dateProp = new Model.Date('date');
                     public formula(): Model.NotionDate {
-                        if (this.testProp.map((index, current) => current.).includes('test')) {
+                        if (this.testProp.map((index, current) => current.upper()).includes('test')) {
                             return this.dateProp.dateAdd(1, 'days');
                         }
                         return this.now();
@@ -234,7 +240,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual('if(prop("Test Property").map(current.lower()).includes("test"),prop("date").dateAdd(1,"days"),now())');
+                expect(result).toEqual('if(prop("Test Property").map(current.upper()).includes("test"),prop("date").dateAdd(1,"days"),now())');
             });
 
             it('should replace function calls that use a callback parameter and unexpected variables', () => {
@@ -250,7 +256,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual('if(prop("Test Property").map(current.lower()).includes("test"),prop("date").dateAdd(1,"days"),now())');
+                expect(result).toEqual(`if(prop("Test Property").map((concat(current.lower(),index.format()))).includes("test"),prop("date").dateAdd(1,"days"),now())`);
             });
         });
 
@@ -450,7 +456,7 @@ describe('notionFormulaGenerator', () => {
                         }
                     } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 0) {
                         // for tasks that are overdue we need to finish them pronto
-                        if (this.contains(this.tags.value, 'Must finish')) {
+                        if (this.contains(this.tags, 'Must finish')) {
                             return 100 + this.difficulty.value;
                         } else {
                             return 100 - this.completionPercent.value + this.difficulty.value;
