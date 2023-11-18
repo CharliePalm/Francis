@@ -82,7 +82,7 @@ export function getCallbackStatement(block: string): string[] {
     let inCallback = false;
     let depth = 0;
     const callbacks: string[] = [];
-    while (index < block.length - 1) {
+    while (index < block.length) {
         if (block[index] == '(') {
             if (!inCallback) {
                 lastOpenParenthesesIndex = index;
@@ -110,7 +110,7 @@ export function parseCallbackStatement(callback: string): string {
     const params = paramString.replace(' ', '').split(',');
     params.forEach((param, index) => {
         callback = callback.replace(
-            new RegExp(param, 'g'),
+            new RegExp(`(?<![a-zA-Z0-9"])${param}(?![a-zA-Z0-9"])(?=(?:[^"]*"[^"]*")*[^"]*$)`, 'g'),
             params.length === 1 || index === 1 ? 'current' : 'index',
         );
     });

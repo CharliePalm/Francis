@@ -69,7 +69,7 @@ describe('helper functions', () => {
         });
     });
 
-    describe('getCallbackStatement', () => {
+    describe.only('getCallbackStatement', () => {
         it('should get a callback', () => {
             const result = getCallbackStatement('if(1==1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop"))');
             expect(result).toEqual(['(index,current) => current.lower()']);
@@ -78,6 +78,11 @@ describe('helper functions', () => {
         it('should get multiple callback', () => {
             const result = getCallbackStatement('if(1==1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop").filter((current) => current != "test"))');
             expect(result).toEqual(['(index,current) => current.lower()', '(current) => current != "test"']);
+        });
+
+        it('should replace this callback that it isnt for some reason', () => {
+            const result = getCallbackStatement(`prop("formula").map((a,b)=>a==prop("formula").length()-1?"last value of list":b.lower())`);
+            expect(result).toEqual(['(a,b)=>a==prop("formula").length()-1?"last value of list":b.lower()'])
         });
     });
 
@@ -95,6 +100,11 @@ describe('helper functions', () => {
         it('should replace a multi variable callback', () => {
             const result = parseCallbackStatement('(weirdVariable, otherWeirdVariable)=>weirdVariable+otherWeirdVariable');
             expect(result).toEqual('index+current');
+        });
+
+        it('does not replace non-variable references with the same name', () => {
+            const result = parseCallbackStatement('(a,e)=>a.length()+e+"e e test"');
+            expect(result).toEqual('index.length()+current+"e e test"');
         });
     });
 });

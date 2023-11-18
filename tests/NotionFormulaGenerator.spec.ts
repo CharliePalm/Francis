@@ -432,6 +432,19 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)*100)/100`);
         });
 
+        it('handles formulas properly', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public f = new Model.Formula<Model.NotionList<Model.Text>>('formula');
+                public blocked = new Model.Checkbox('Blocked');
+                formula() {
+                    return this.f.value.map((a, b) => a.value == this.f.value.length().value - 1 ? 'last value of list' : b.lower());
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual(`prop("formula").map(index==prop("formula").length()-1?"last value of list":current.lower())`);
+        });
+
         it('should handle nested tails', () => {
             class TestClass extends NotionFormulaGenerator {
                 public status = new Model.Select('Status');

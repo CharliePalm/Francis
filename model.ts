@@ -32,6 +32,7 @@ export class NotionList<T = any> extends Property {
     unique(): NotionList { return this; }
     includes(value: NotionType): boolean { return true; }
     flat(): NotionList { return this; }
+    length(): NotionNumber { return {} as NotionNumber; }
 }
 
 export class NotionString extends Property {
