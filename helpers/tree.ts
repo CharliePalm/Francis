@@ -1,4 +1,4 @@
-import { NodeType } from '../model';
+import { NodeType, Property } from '../model';
 import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from './helpers';
 
 /**
@@ -164,12 +164,15 @@ export class Node {
     /**
      * replaces all references to db properties
      */
-    public replaceProperties(propertyMap: {[key: string]: any}): void {
+    public replaceProperties(propertyMap: {[key: string]: Property}): void {
         if (!this) return;
         // replace .value
         this.statement = this.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}")`);
-        // replace object method calls
-        this.statement = this.statement.replace(/this\.(\w+)\./g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}").`);
+        // replace object method calls - if the property is a DB property then replace it, otherwise it's a builtin function call so just use it
+        this.statement = this.statement.replace(/this\.(\w+)/g, (_, property) => (propertyMap)[property] ? `prop("${(propertyMap)[property]?.propertyName}")` : property);
+        // remove all leftover .values
+        this.statement = this.statement.replace(/\.value/g, '');
+
         this.replaceFunctionsAndOperators();
         this.replaceCallbacks();
         this.trueChild?.replaceProperties(propertyMap);

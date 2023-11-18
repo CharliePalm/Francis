@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person, NotionDateType } from "./model";
+import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person, NotionDateType, PropertyType, Date, Property } from "./model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;
@@ -50,7 +50,7 @@ export abstract class NotionFormulaGenerator {
         // create tree
         this.tree = new Tree(formulaBody);
         // replace references to database properties
-        this.tree.root.replaceProperties((this as {[key: string]: any}));
+        this.tree.root.replaceProperties(this.buildDbProps());
         const endResult = this.build(this.tree.root, '');
         return endResult;
     }
@@ -85,6 +85,16 @@ export abstract class NotionFormulaGenerator {
                 break;
         }
         return currentFormula;
+    }
+
+    private buildDbProps(): {[key: string]: Property} {
+        const thisObj = this as {[key: string]: any};
+        const validPropertyTypes = Object.values(PropertyType);
+        const dbObj: {[key: string]: Property}  = {};
+        Object.keys(thisObj)
+            .filter((key) => validPropertyTypes.includes(thisObj[key].constructor?.name))
+            .forEach((key) => dbObj[key] = thisObj[key]);
+        return dbObj;
     }
 
     /**
@@ -231,6 +241,6 @@ export abstract class NotionFormulaGenerator {
     unequal(val1: any, val2: any): boolean { return true; }
 
     // built in properties:
-    createdTime = new NotionDate('Created Time');
+    createdTime = new Date('Created Time');
     createdBy = new Person('Created By');
 }

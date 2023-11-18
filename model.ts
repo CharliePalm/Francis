@@ -15,7 +15,7 @@ export class Property {
 }
 
 export class NotionList<T = any> extends Property {
-    value: T;
+    value!: T;
     // lists do not include a value because comparisons between arrays in general shouldn't be done. 
     map(callback: (index: NotionNumber, current: T) => NotionType): NotionList { return this; }
     filter(callback: (current: T) => boolean): NotionList { return this; }
@@ -35,7 +35,7 @@ export class NotionList<T = any> extends Property {
 }
 
 export class NotionString extends Property {
-    value: string;
+    value!: string;
     length(): NotionNumber { return {} as NotionNumber; } // unfortunately, notion and typescript disagree on the type signature here. We'll add the () when we compile the formula
     substring(start: number, end?: number): NotionString { return this; }
     contains(toSearchFor: NotionStringType): boolean { return true; }
@@ -89,23 +89,23 @@ export class NotionPerson extends Property {
 
 // properties
 export class Person extends NotionPerson {
-    value: NotionPerson;
+    value!: NotionPerson;
 }
 
 export class Number extends NotionNumber {
-    value: number;
+    value!: number;
 }
 
 export class Date extends NotionDate {
-    value: NotionDate;
+    value!: NotionDate;
 }
 
 export class Checkbox extends Property {
-    value: boolean;
+    value!: boolean;
 }
 
 export class Formula<T = any> extends Property {
-    value: T;
+    value!: T;
 }
 
 export class Text extends NotionString {}
@@ -148,24 +148,25 @@ export type NotionStringType = NotionString & string | string | NotionString;
 export type NotionNumberType = NotionNumber & number | number | NotionNumber;
 
 export enum PropertyType {
-    Select,
-    Number,
-    Text,
-    Status,
-    Date,
-    Person,
-    File,
-    Checkbox,
-    URL,
-    Email,
-    Phone,
-    Formula,
-    Relation,
-    Rollup,
-    CreatedTime,
-    CreatedBy,
-    LastEditedTime,
-    LastEditedBy,
+    Select = 'Select',
+    Number = 'Number',
+    Text = 'Text',
+    Status = 'Status',
+    Date = 'Date',
+    Person = 'Person',
+    File = 'File',
+    Checkbox = 'Checkbox',
+    URL = 'URL',
+    Email = 'Email',
+    Phone = 'Phone',
+    Formula = 'Formula',
+    Relation = 'Relation',
+    MultiSelect = 'MultiSelect',
+    Rollup = 'Rollup',
+    CreatedTime = 'CreatedTime',
+    CreatedBy = 'CreatedBy',
+    LastEditedTime = 'LastEditedTime',
+    LastEditedBy = 'LastEditedBy',
 }
 
 export enum NodeType {

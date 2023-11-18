@@ -61,7 +61,7 @@ class ExampleFormula extends NotionFormulaGenerator {
     }
 
     daysSinceLastWorkedOn() {
-        return (this.lastWorkedOn.value ? this.dateBetween(this.now(), this.lastWorkedOn.value, 'days') : this.dateBetween(this.now(), this.createdTime.value, 'days'));
+        return (this.lastWorkedOn.value ? this.dateBetween(this.now(), this.lastWorkedOn.value, 'days') : this.dateBetween(this.now(), this.createdTime, 'days'));
     }
 
     buildFunctionMap(): Map<string, string> {

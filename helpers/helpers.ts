@@ -74,17 +74,7 @@ export function getFalseBlockContent(block: string, index: number): string | und
 }
 
 /**
- * converts a block's object property references to the notion format
- * @param block 
- * @returns the converted block
- */
-export function convertBlockContent(block: string): string {
-    const regex = /(?<!\w)this\.([a-zA-Z0-9_]*)(?=[^()[\]{}*+-/])/g;
-    return block.replace(regex, 'prop("$1")');
-}
-
-/**
- * 
+ * parses a notion callback from a typescript callback
  */
 export function getCallbackStatement(block: string): string[] {
     let index = 0;

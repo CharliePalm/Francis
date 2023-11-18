@@ -222,7 +222,31 @@ describe('notionFormulaGenerator', () => {
 
         describe('primitive compare replaces', () => {
             it('replaces the .value for primitive comparisons', () => {
-                // TODO
+                class TestClass extends NotionFormulaGenerator {
+                    public testProp = new Model.Text('Test Property');
+                    public dateProp = new Model.Date('date');
+                    public formula() {
+                        return this.testProp.upper().value == 'test' ? 1 : (this.testProp.upper() == this.dateProp.format());
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual('prop("Test Property").upper()=="test"?1:(prop("Test Property").upper()==prop("date").format())');
+            });
+        });
+
+        describe('properties as parameters', () => {
+            it('allows property references with no .value', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public t1 = new Model.Text('t1');
+                    public t2 = new Model.Text('t2');
+                    public formula() {
+                        return this.t1.contains(this.t2);
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual('prop("t1").contains(prop("t2"))');
             });
         });
 
