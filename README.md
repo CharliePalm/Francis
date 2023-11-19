@@ -1,23 +1,3 @@
-# UPDATE 11/2023:
-Notion has upgraded their formula API, and as such, Francis needs an update too. This is almost done, but I may have to sacrifice some ease of use for more difficult functionality.
-The API has been changed to include object-esque references, and this leads to primitive operations breaking down if we define these object types. For example:
-
-    // define DB property as being Notion's 'text' type:
-    const myText = new Model.Text('');
-    // ideally, we could both compare, and access the member methods of myText:
-    myText.upper();
-    const myOtherText = new Model.Text('');
-    myOtherText === myText; // compiler should allow as we can compare strings in Notion
-    myOtherText === 'test'; // compiler should allow as we can compare primitive strings in Notion
-
-The third case is where my current implementation of the compiler is breaking down.
-I've done some troubleshooting as defining a 'notion string type' as both the union and the intersection of the primitive string and the NotionString, but to no avail. 
-I'm still working on this, just wanted to let everyone know that this is still in progress, and I haven't abandoned the project. If you have any suggestions here, let me know - as long as this header is on the readme I don't have a solution.
-
-It's also possible that I'm overthinking this, and most people won't create formulas complex enough to utilize 100% of this functionality anyways, but I don't want users to be potentially held back from creating super complex formulas by anything.
-
-You can access the partially completed code in the 'update' branch if you want to create formulas with the new API, it just will not have full functionality.
-
 # Francis
 
 F.R.A.N.C.I.S. (Formula Readability And Notion Compilation Improvement Stack) is a somewhat complicated but powerful and programmer friendly way of getting around the difficulty of writing large formulas in Notion.
@@ -101,6 +81,15 @@ Which will lead to the same result, just with ternaries instead of the notion if
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
+# New in v2.0
+
+Francis has been updated to support Notion's new formula API. This means that you can now utilize object references, callback functions, and update your formulas to be supported by the newest version. Using object references is simple, though does change some ways that Francis needs to be used.
+
+Because DB properties are now treated as objects, if you wish to do any primitive operations, you need to use the .value field on the object. Otherwise, you can use the object itself as input
+for things like functions parameters.
+
+Notion also changed some minor things about its builtins - for example: e and pi are now function calls instead of constants, lists have their own functions, concat takes lists, etc.
+
 ## FAQ
 
 "Why typescript?"\
@@ -133,7 +122,9 @@ If you suspect you've encountered a bug with the codebase and NOT your implement
 
 ## Future Plans
 
-As the header above mentions, updates are still needed for full functionatliy with Notion's new API. The current release doesn't support most of the update.
+As of now, the only future plan I'm looking to add is a more robust generic typing interface that's both strict and adaptable so as to properly utilize Notion's 2.0 formula API object-esque references. Because I wanted users to be able to utilize this functionality, I had to make some decisions regarding primitive vs objective reference types. In the end, any Notion object
+contains a value field that has its primitive type (if applicable) for primitive comparisons and function input, but it could potentially be more user friendly to forego that and completely rely on object comparisons.
+This brings into question how type safety will be properly enforced and how primitive operations can be carried out, which I don't have a solution for right now, but would like to work more on.
 
 ## License
 [MIT License](https://opensource.org/licenses/MIT) 
