@@ -1,0 +1,21 @@
+name: Main PR checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: setup node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    - run: npm ci
+    - run: npm test
+    - run: npm run lint
