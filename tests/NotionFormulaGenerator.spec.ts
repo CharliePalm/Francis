@@ -120,36 +120,31 @@ describe('notionFormulaGenerator', () => {
     describe('replace functions', () => {
         it('should replace this.* in statement', () => {
             const n = new Node(Model.NodeType.Logic, 'this.dateBetween(prop("test"), prop("test2"), "days")');
-            const testClass = new BasicTestClass();
-            testClass.replaceFunctionsAndOperators(n);
+            n.replaceFunctionsAndOperators();
             expect(n.statement).toEqual('dateBetween(prop("test"), prop("test2"), "days")');
         });
 
         it('should replace multiple this.*s in statement', () => {
             const n = new Node(Model.NodeType.Logic, 'this.dateBetween(prop("test"), prop("test2"), "days") != this.floor(5.5)');
-            const testClass = new BasicTestClass();
-            testClass.replaceFunctionsAndOperators(n);
+            n.replaceFunctionsAndOperators();
             expect(n.statement).toEqual('dateBetween(prop("test"), prop("test2"), "days") != floor(5.5)');
         });
 
         it('should replace && operator', () => {
             const n = new Node(Model.NodeType.Logic, 'prop("test2"),"days")!=this.floor(5.5)&&1&&3');
-            const testClass = new BasicTestClass();
-            testClass.replaceFunctionsAndOperators(n);
+            n.replaceFunctionsAndOperators();
             expect(n.statement).toEqual('prop("test2"),"days")!=floor(5.5) and 1 and 3');
         });
 
         it('should replace || operator', () => {
             const n = new Node(Model.NodeType.Logic, 'prop("test2"),"days")!=this.floor(5.5)||1||3');
-            const testClass = new BasicTestClass();
-            testClass.replaceFunctionsAndOperators(n);
+            n.replaceFunctionsAndOperators();
             expect(n.statement).toEqual('prop("test2"),"days")!=floor(5.5) or 1 or 3');
         });
 
         it('should replace ! operator', () => {
             const n = new Node(Model.NodeType.Logic, 'prop("test2"),"days")!=this.floor(5.5)&&!false||!true||3!=!1');
-            const testClass = new BasicTestClass();
-            testClass.replaceFunctionsAndOperators(n);
+            n.replaceFunctionsAndOperators();
             expect(n.statement).toEqual('prop("test2"),"days")!=floor(5.5) and  not false or  not true or 3!= not 1');
         });
     });
@@ -172,7 +167,7 @@ describe('notionFormulaGenerator', () => {
             }
             
             const n = new TestClass();
-            expect(n.compile()).toEqual('if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))')
+            expect(n.compile()).toEqual(`if(prop("Days Till Due")<5,prop("Priority")*prop("Days Till Due"),if(prop("Days Till Due")<10,prop("Priority")*prop("Days Till Due")/2,if(prop("Days Till Due")<20,prop("Priority"),prop("Priority")/2)))`)
         });
 
         it('should create a formula with notion builtins', () => {
@@ -192,7 +187,7 @@ describe('notionFormulaGenerator', () => {
                         return 100;
                     } else if (this.status.value == 'Not started') {
                         return (this.difficulty.value) * (
-                            this.pi / 
+                            this.pi() / 
                             this.dateBetween(
                                 this.dateAdd(this.dueDate.value, 1, 'days'), 
                                 this.now(), 
@@ -200,13 +195,108 @@ describe('notionFormulaGenerator', () => {
                             )
                         );
                     } else {
-                        return this.dateBetween(this.lastWorkedOn.value, this.now(), 'days') * (this.difficulty.value / (100 + this.e) + this.e)
+                        return this.dateBetween(this.lastWorkedOn.value, this.now(), 'days') * (this.difficulty.value / (100 + this.e()) + this.e())
                     }
                 }
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),'days')<=0,100,if(prop("Status")=='Not started',(prop("Difficulty"))*(pi/dateBetween(dateAdd(prop("Due date"),1,'days'),now(),'days')),dateBetween(prop("Last worked on"),now(),'days')*(prop("Difficulty")/(100+e)+e))))`)
+            expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),"days")<=0,100,if(prop("Status")=="Not started",(prop("Difficulty"))*(pi()/dateBetween(dateAdd(prop("Due date"),1,"days"),now(),"days")),dateBetween(prop("Last worked on"),now(),"days")*(prop("Difficulty")/(100+e())+e()))))`)
+        });
+        
+        it('should create a formula using object style function calls', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public testProp = new Model.MultiSelect('Test Property');
+                public dateProp = new Model.Date('date');
+                public formula(): Model.NotionDate {
+                    if (this.testProp.includes('test')) {
+                        return this.dateProp.dateAdd(1, 'days');
+                    }
+                    return this.now();
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual('if(prop("Test Property").includes("test"),prop("date").dateAdd(1,"days"),now())');
+        });
+
+        describe('primitive compare replaces', () => {
+            it('replaces the .value for primitive comparisons', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public testProp = new Model.Text('Test Property');
+                    public dateProp = new Model.Date('date');
+                    public formula() {
+                        return this.testProp.upper().value == 'test' ? 1 : (this.testProp.upper() == this.dateProp.format());
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual('prop("Test Property").upper()=="test"?1:(prop("Test Property").upper()==prop("date").format())');
+            });
+        });
+
+        describe('properties as parameters', () => {
+            it('allows property references with no .value', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public t1 = new Model.Text('t1');
+                    public t2 = new Model.Text('t2');
+                    public formula() {
+                        return this.t1.contains(this.t2);
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual('prop("t1").contains(prop("t2"))');
+            });
+        });
+
+        describe('callbacks', () => {
+            it('should replace function calls that use a callback parameter', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public testProp = new Model.MultiSelect<Model.NotionString>('Test Property');
+                    public dateProp = new Model.Date('date');
+                    public formula(): Model.NotionDate {
+                        if (this.testProp.map((index, current) => current.upper()).includes('test')) {
+                            return this.dateProp.dateAdd(1, 'days');
+                        }
+                        return this.now();
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual('if(prop("Test Property").map(current.upper()).includes("test"),prop("date").dateAdd(1,"days"),now())');
+            });
+
+            it('should replace function calls that use a callback parameter and unexpected variables', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public testProp = new Model.MultiSelect('Test Property');
+                    public dateProp = new Model.Date('date');
+                    public formula(): Model.NotionDate {
+                        if (this.testProp.map((index, current) => (this.concat(current.lower(), index.format()))).includes('test')) {
+                            return this.dateProp.dateAdd(1, 'days');
+                        }
+                        return this.now();
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(`if(prop("Test Property").map((concat(current.lower(),index.format()))).includes("test"),prop("date").dateAdd(1,"days"),now())`);
+            });
+
+            it('allows typing callback parameters as primitives or objects', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public f = new Model.Formula<Model.NotionList<Model.Text>>('formula');
+                    public blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        return this.blocked.value ?
+                            this.f.value.map((a: Model.NotionNumber, b: Model.Text) => a.value + b.toNumber().value) :
+                            this.f.value.map((a: number, b: string) => b == 'test' ? a == 1 : a == 2);
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(`prop("Blocked")?prop("formula").map(index+current.toNumber()):prop("formula").map(current=="test"?index==1:index==2)`);
+            });
         });
 
         it('should allow logic in functions', () => {
@@ -231,7 +321,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow nested wrapper function call with no logic', () => {
@@ -259,7 +349,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(dateBetween(now(),prop("Due date"),'days'))`);
+            expect(result).toEqual(`round(dateBetween(now(),prop("Due date"),"days"))`);
         });
 
         it('should allow multiple wrappers in a line', () => {
@@ -288,7 +378,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))+abs(-10)*log2(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))+abs(-10)*log2(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow multiple wrappers outside of the root', () => {
@@ -329,7 +419,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Blocked"),abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))))+abs(-10)*log2(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round(if(prop("Blocked"),abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))))+abs(-10)*log2(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
         });
 
         it('should allow arithmetic expressions (tails) outside of wrapper function call', () => {
@@ -354,7 +444,20 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)*100)/100`);
+            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)*100)/100`);
+        });
+
+        it('handles formula types properly', () => {
+            class TestClass extends NotionFormulaGenerator {
+                public f = new Model.Formula<Model.NotionList<Model.Text>>('formula');
+                public blocked = new Model.Checkbox('Blocked');
+                formula() {
+                    return this.f.value.map((a, b) => a.value == this.f.value.length().value - 1 ? 'last value of list' : b.lower());
+                }
+            }
+            const tc = new TestClass();
+            const result = tc.compile();
+            expect(result).toEqual(`prop("formula").map(index==prop("formula").length()-1?"last value of list":current.lower())`);
         });
 
         it('should handle nested tails', () => {
@@ -379,14 +482,14 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(abs(if(prop("Status")=='Done' or prop("Blocked"),7/2,7/3)-10)*100)/100`);
+            expect(result).toEqual(`round(abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)-10)*100)/100`);
         });
 
         it('should work for extremely complex functions', () => {
             class ComplexFormula extends NotionFormulaGenerator {
                 public dueDate = new Model.Date('Due date');
                 public status = new Model.Select('Status');
-                public tags = new Model.MultiSelect('Tags');
+                public tags = new Model.MultiSelect<Model.NotionString>('Tags');
                 public difficulty = new Model.Number('Difficulty');
                 public blocked = new Model.Checkbox('Blocked');
                 public completionPercent = new Model.Number('Completion %');
@@ -405,7 +508,7 @@ describe('notionFormulaGenerator', () => {
                         }
                     } else if (this.dateBetween(this.dueDate.value, this.now(), 'days') <= 0) {
                         // for tasks that are overdue we need to finish them pronto
-                        if (this.contains(this.tags.value, 'Must finish')) {
+                        if (this.contains(this.tags, 'Must finish')) {
                             return 100 + this.difficulty.value;
                         } else {
                             return 100 - this.completionPercent.value + this.difficulty.value;
@@ -442,7 +545,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new ComplexFormula();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop("Status")=='Done' or prop("Blocked"),0,if(format(prop("Due date"))=='',if(prop("Status")!='In Progress',(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*10,(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*dateBetween(now(),prop("Last worked on"),'days')),if(dateBetween(prop("Due date"),now(),'days')<=0,if(contains(prop("Tags"),'Must finish'),100+prop("Difficulty"),100-prop("Completion %")+prop("Difficulty")),if(dateBetween(prop("Due date"),now(),'days')<=7,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1))*(7/log2(dateBetween(now(),prop("Last worked on"),'days'))),if(prop("Status")=='Not started',(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1))+10,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),'days')+1)/(dateBetween(now(),prop("Last worked on"),'days')+1)))))))`)
+            expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(format(prop("Due date"))=="",if(prop("Status")!="In Progress",(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*10,(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*dateBetween(now(),prop("Last worked on"),"days")),if(dateBetween(prop("Due date"),now(),"days")<=0,if(contains(prop("Tags"),"Must finish"),100+prop("Difficulty"),100-prop("Completion %")+prop("Difficulty")),if(dateBetween(prop("Due date"),now(),"days")<=7,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1))*(7/log2(dateBetween(now(),prop("Last worked on"),"days"))),if(prop("Status")=="Not started",(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1))+10,(round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1)))))))`)
         });
     });
 });

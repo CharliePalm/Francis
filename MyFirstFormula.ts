@@ -17,8 +17,8 @@ class MyFirstFormula extends NotionFormulaGenerator {
     }
 
     /**
-     * If you want to use helper functions, define them here
-     * @returns 
+     * If you want to use helper functions, define them here like this
+     * @returns
      */
     public buildFunctionMap(): Map<string, string> {
         return new Map([

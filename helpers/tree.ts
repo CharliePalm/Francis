@@ -1,5 +1,5 @@
-import { NodeType } from '../model';
-import { getBlockContent, getStatement } from './helpers';
+import { NodeType, Property } from '../model';
+import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from './helpers';
 
 /**
  * this class is a binary tree representing the flow of logic
@@ -143,5 +143,50 @@ export class Node {
 
     addTail(tail: string) {
         this.tail = tail;
+    }
+
+    // helpers
+
+    /**
+     * replaces all references to builtin notion functions and typescript operators
+     * @param node 
+     */
+    public replaceFunctionsAndOperators(): void {
+        if (!this) return;
+        // replace all uses of this. with '', && with and, || with or, and ! with not when not followed by an equals sign
+        this.statement = this.statement
+            .replace(/this\./g, '')
+            .replace(/&&/g, ' and ')
+            .replace(/\|\|/g, ' or ')
+            .replace(/!(?!=)/g, ' not ');
+    }
+
+    /**
+     * replaces all references to db properties
+     */
+    public replaceProperties(propertyMap: {[key: string]: Property}): void {
+        if (!this) return;
+        // replace .value
+        this.statement = this.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}")`);
+        // replace object method calls - if the property is a DB property then replace it, otherwise it's a builtin function call so just use it
+        this.statement = this.statement.replace(/this\.(\w+)/g, (_, property) => (propertyMap)[property] ? `prop("${(propertyMap)[property]?.propertyName}")` : property);
+        // remove all leftover .values
+        this.statement = this.statement.replace(/\.value/g, '');
+
+        this.replaceFunctionsAndOperators();
+        this.replaceCallbacks();
+        this.trueChild?.replaceProperties(propertyMap);
+        this.falseChild?.replaceProperties(propertyMap);
+        this.wrappedChildren?.forEach((child) => {
+            child.replaceProperties(propertyMap);
+        });
+    }
+
+    private replaceCallbacks(): void {
+        const callbacks = getCallbackStatement(this.statement);
+        callbacks.forEach((callback) => {
+            const parsedCallback = parseCallbackStatement(callback);
+            this.statement = this.statement.replace(callback, parsedCallback);
+        });
     }
 }

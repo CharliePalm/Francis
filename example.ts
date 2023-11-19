@@ -17,10 +17,7 @@ class ExampleFormula extends NotionFormulaGenerator {
 
     buildFormula() {
         const addIfNotStarted = 10;
-        if (
-            this.status.value == 'Done' || 
-            this.blocked.value || 
-            (!this.empty(this.holdOff.value) && this.dateBetween(this.now(), this.holdOff.value, 'days') < 0)) {
+        if (this.status.value == 'Done' || this.blocked.value) {
             return 0;
         } else if (this.empty(this.dueDate.value)) {
             // for tasks with no real due date, we want to prioritize the dormant sigmoid as we won't be adding the due date sigmoid
@@ -41,16 +38,16 @@ class ExampleFormula extends NotionFormulaGenerator {
 
     // a measure of how long since we last touched this task
     dormantSigmoid() {
-        return (25 / (1 + this.pow(this.e, 3 - 1 * (.25 * this.daysSinceLastWorkedOn()))));
+        return (25 / (1 + this.pow(this.e(), 3 - 1 * (.25 * this.daysSinceLastWorkedOn()))));
     }
 
     // a measure of how many days till the task is due
     dueDateSigmoid() {
-        return (100 / (1 + this.pow(this.e, (.2 * this.daysTillDue()))));
+        return (100 / (1 + this.pow(this.e(), (.2 * this.daysTillDue()))));
     }
 
     getPriorityFactor() {
-        return (this.difficulty.value / 300 + .83);
+        return ((this.difficulty.value ? this.difficulty.value : 10) / 300 + .83);
     }
 
     // start high, get lower as more complete
@@ -64,7 +61,7 @@ class ExampleFormula extends NotionFormulaGenerator {
     }
 
     daysSinceLastWorkedOn() {
-        return this.dateBetween(this.now(), this.lastWorkedOn.value, 'days');
+        return (this.lastWorkedOn.value ? this.dateBetween(this.now(), this.lastWorkedOn.value, 'days') : this.dateBetween(this.now(), this.createdTime, 'days'));
     }
 
     buildFunctionMap(): Map<string, string> {
