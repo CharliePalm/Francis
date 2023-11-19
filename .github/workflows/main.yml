@@ -1,5 +1,4 @@
 name: Main PR checks
-
 on:
   pull_request:
     branches: [ main ]
