@@ -1,4 +1,3 @@
-import { Node } from './tree';
 /**
  * returns the first instance of logic enclosed in brackets or parentheses
  * @param block - the block to parse
