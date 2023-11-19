@@ -17,12 +17,12 @@ export class Property {
 export class NotionList<T = any> extends Property {
     value!: T;
     // lists do not include a value because comparisons between arrays in general shouldn't be done. 
-    map(callback: (index: NotionNumber, current: T) => NotionType): NotionList { return this; }
-    filter(callback: (current: T) => boolean): NotionList { return this; }
-    find(callback: (current: T) => boolean): NotionList { return this; }
-    findIndex(callback: (current: T) => boolean): number { return 0; }
-    some(callback: (current: T) => boolean): boolean { return true; }
-    every(callback: (current: T) => boolean): boolean { return true; }
+    map(callback: (index: NotionNumberType | any, current: T | any) => NotionType): NotionList { return this; }
+    filter(callback: (current: T | any) => boolean): NotionList { return this; }
+    find(callback: (current: T | any) => boolean): NotionList { return this; }
+    findIndex(callback: (current: T | any) => boolean): NotionNumberType { return 0; }
+    some(callback: (current: T | any) => boolean): boolean { return true; }
+    every(callback: (current: T | any) => boolean): boolean { return true; }
     at(index: NotionNumberType): T { return this.value; }
     slice(start: NotionNumberType, end?: NotionNumberType): NotionList { return this; }
     concat(...values: NotionList[]): NotionList { return this; }
@@ -38,7 +38,7 @@ export class NotionList<T = any> extends Property {
 export class NotionString extends Property {
     value!: string;
     length(): NotionNumber { return {} as NotionNumber; } // unfortunately, notion and typescript disagree on the type signature here. We'll add the () when we compile the formula
-    substring(start: number, end?: number): NotionString { return this; }
+    substring(start: NotionNumberType, end?: NotionNumberType): NotionString { return this; }
     contains(toSearchFor: NotionStringType): boolean { return true; }
     test(toMatch: NotionStringType): boolean { return true; }
     match(regEx: NotionStringType): NotionList { return new NotionList(); }
@@ -46,10 +46,10 @@ export class NotionString extends Property {
     replaceAll(toFind: NotionStringType, toReplace: NotionStringType): NotionString { return this; }
     lower(): NotionString { return this; }
     upper(): NotionString { return this; }
-    link(link: string): NotionString { return this; }
+    link(link: NotionStringType): NotionString { return this; }
     style(...values: StyleType[]): NotionString { return this; }
     unstyle(...values: StyleType[]): NotionString { return this; }
-    toNumber(): number { return 0; }
+    toNumber(): NotionNumber { return {} as NotionNumber; }
     parseDate(): Date { return new Date(); }
     split(splitter: NotionStringType): NotionList { return new NotionList(); }
 }
@@ -78,9 +78,9 @@ export class NotionNumber extends Property {
 }
 
 export class NotionDate extends Property {
-    dateSubtract(num: number, unit: NotionDateType): NotionDate { return this; }
-    dateAdd(num: number, unit: NotionDateType): NotionDate { return this; }
-    formatDate(format: string): NotionString { return {} as NotionString; }
+    dateSubtract(num: NotionNumberType, unit: NotionDateType): NotionDate { return this; }
+    dateAdd(num: NotionNumberType, unit: NotionDateType): NotionDate { return this; }
+    formatDate(format: NotionStringType): NotionString { return {} as NotionString; }
 }
 
 export class NotionPerson extends Property {

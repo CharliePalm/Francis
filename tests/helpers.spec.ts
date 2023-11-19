@@ -69,7 +69,7 @@ describe('helper functions', () => {
         });
     });
 
-    describe.only('getCallbackStatement', () => {
+    describe('getCallbackStatement', () => {
         it('should get a callback', () => {
             const result = getCallbackStatement('if(1==1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop"))');
             expect(result).toEqual(['(index,current) => current.lower()']);

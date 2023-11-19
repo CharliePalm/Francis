@@ -282,6 +282,21 @@ describe('notionFormulaGenerator', () => {
                 const result = tc.compile();
                 expect(result).toEqual(`if(prop("Test Property").map((concat(current.lower(),index.format()))).includes("test"),prop("date").dateAdd(1,"days"),now())`);
             });
+
+            it('allows typing callback parameters as primitives or objects', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public f = new Model.Formula<Model.NotionList<Model.Text>>('formula');
+                    public blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        return this.blocked.value ?
+                            this.f.value.map((a: Model.NotionNumber, b: Model.Text) => a.value + b.toNumber().value) :
+                            this.f.value.map((a: number, b: string) => b == 'test' ? a == 1 : a == 2);
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(`prop("Blocked")?prop("formula").map(index+current.toNumber()):prop("formula").map(current=="test"?index==1:index==2)`);
+            });
         });
 
         it('should allow logic in functions', () => {
@@ -432,7 +447,7 @@ describe('notionFormulaGenerator', () => {
             expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)*100)/100`);
         });
 
-        it('handles formulas properly', () => {
+        it('handles formula types properly', () => {
             class TestClass extends NotionFormulaGenerator {
                 public f = new Model.Formula<Model.NotionList<Model.Text>>('formula');
                 public blocked = new Model.Checkbox('Blocked');
