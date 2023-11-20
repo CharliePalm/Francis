@@ -85,10 +85,11 @@ Above all, this isn't a full complier and shouldn't be treated as such, as the c
 
 Francis has been updated to support Notion's new formula API. This means that you can now utilize object references, callback functions, and update your formulas to be supported by the newest version. Using object references is simple, though does change some ways that Francis needs to be used.
 
-Because DB properties are now treated as objects, if you wish to do any primitive operations, you need to use the .value field on the object. Otherwise, you can use the object itself as input
-for things like functions parameters.
+Because DB properties are now treated as objects, if you wish to do any primitive operations, you need to use the .value field on the object (being either a DB property or the return from a function). Otherwise, you can use the object itself as input for things like functions parameters.
 
 Notion also changed some minor things about its builtins - for example: e and pi are now function calls instead of constants, lists have their own functions, concat takes lists, etc.
+
+Since they now allow new lines, comments, and other such conveniences, the main purpose of this tool has transitioned into more of a complexity manager. Things like helper function and constant declaration will make writing exceptionally complex formulas much simpler and lead to significant readability improvements. See example.ts for my task scheduler algorithm - it uses two sigmoid functions that are contained in function calls. 
 
 ## FAQ
 
