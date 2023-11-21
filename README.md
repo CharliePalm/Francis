@@ -24,7 +24,7 @@ It does so through these steps:
 This usage guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
 
     git clone https://github.com/CharliePalm/Francis
-    cd NotionFormulaGenerator
+    cd Francis
     npm i
 Open the provided myFirstFormula file, and run
     
