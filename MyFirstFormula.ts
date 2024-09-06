@@ -12,6 +12,7 @@ class MyFirstFormula extends NotionFormulaGenerator {
         return 0;
     }
     
+    // any frequently re-used logic can be compartmentalized into functions
     nameOfFunction() {
         return 0;
     }

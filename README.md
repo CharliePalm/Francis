@@ -1,4 +1,4 @@
-# Francis
+# Francis (Notion Formula Generator)
 [![npm](https://img.shields.io/badge/npm-v2.0.1-blue)](https://www.npmjs.com/package/notion-formula-generator)
 [![License](https://img.shields.io/badge/license-MIT-purple)](https://opensource.org/licenses/MIT)
 [![Author](https://img.shields.io/badge/author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
@@ -23,14 +23,59 @@ It does so through these steps:
 8. Return the completed formula
 
 ## Usage
+### NPM
 
-This usage guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
+Generate a new typescript project:
+
+    cd path/to/project
+    npm init
+    npm i notion-formula-generator
+
+Then create a MyFirstFormula.ts file that looks something like this:
+
+    import { NotionFormulaGenerator, Model } from 'notion-formula-generator'
+    class MyFirstFormula extends NotionFormulaGenerator {
+        // define DB properties here:
+        public myProperty = new Model.Checkbox('myProperty name');
+
+        // fill in your formula function here:
+        formula() {
+            if (this.myProperty.value) {
+                return 1;
+            }
+            return 0;
+        }
+        
+        // any frequently re-used logic can be compartmentalized into functions
+        nameOfFunction() {
+            return 0;
+        }
+
+        /**
+        * If you want to use helper functions, define them here like this
+        * @returns
+        */
+        public buildFunctionMap(): Map<string, string> {
+            return new Map([
+                ['nameOfFunction', this.nameOfFunction.toString()],
+            ]);
+        }
+    }
+
+    const formula = new MyFirstFormula();
+    console.log('result: ');
+    console.log(formula.compile());
+and add your formula and parameters
+
+### Cloning the repo (Recommended):
+Because the process for generating formulas is somewhat confusing, it's helpful to have the whole repo at your disposale to view the examples.
+This guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
 
     git clone https://github.com/CharliePalm/Francis
     cd Francis
     npm i
 Open the provided myFirstFormula file, and run
-    
+
     ts-node myFirstFormula.ts
 you should see the result:
 
