@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionDate, Person, NotionDateType, PropertyType, Date, Property } from "./model";
+import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionDate, Person, NotionDateType, PropertyType, Date, Property, NotionPerson } from "./model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;
@@ -172,6 +172,8 @@ export abstract class NotionFormulaGenerator {
     add(value: number | string, value2: number | string): number | string { return 0; }
     subtract(value1: number, value2: number): number { return 0; }
     sign(value: number): number { return 0; }
+    median(...values: NotionType[]): number { return 0; }
+    mean(...values: NotionType[]): number { return 0; }
 
     // string operations
     concat(...values: NotionType[]): NotionList { return new NotionList(); }
@@ -193,6 +195,8 @@ export abstract class NotionFormulaGenerator {
     unstyle(value: string, ...values: StyleType[]): NotionString { return new NotionString(); }
     parseDate(value: string): NotionDate { return new NotionDate(); }
     split(value: string, splitter: string): NotionList { return new NotionList(); }
+    padStart(value: string, amount: number, padChar: string | number): NotionString { return new NotionString(); }
+    padEnd(value: string, amount: number, padChar: string | number): NotionString { return new NotionString(); }
 
     // array operations
     map(list: NotionList | NotionType[], callback: (index: number, current: NotionType) => NotionType): NotionList { return new NotionList(); }
@@ -219,6 +223,7 @@ export abstract class NotionFormulaGenerator {
     dateSubtract(date: NotionDate, amount: number, units: NotionDateType): NotionDate { return new NotionDate(); }
     dateBetween(date1: NotionDate, date2: NotionDate, units: NotionDateType): number { return 0; }
     formatDate(date: NotionDate, formatStr: string): string { return ''; }
+    
     // returns minute of current hour, 0-59
     minute(date: NotionDate): number { return 0; }
     // returns hour of the day, 0-23
@@ -239,6 +244,8 @@ export abstract class NotionFormulaGenerator {
     not(val: any): boolean { return true; }
     equal(val1: any, val2: any): boolean { return true; }
     unequal(val1: any, val2: any): boolean { return true; }
+    name(person: NotionPerson): NotionString { return new NotionString(); }
+    email(person: NotionPerson): NotionString { return new NotionString(); }
 
     // built in properties:
     createdTime = new Date('Created Time');

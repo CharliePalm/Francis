@@ -52,6 +52,8 @@ export class NotionString extends Property {
     toNumber(): NotionNumber { return {} as NotionNumber; }
     parseDate(): Date { return new Date(); }
     split(splitter: NotionStringType): NotionList { return new NotionList(); }
+    padStart(value: string, amount: number, padChar: string | number): NotionString { return new NotionString(); }
+    padEnd(value: string, amount: number, padChar: string | number): NotionString { return new NotionString(); }
 }
 
 export class NotionNumber extends Property {
