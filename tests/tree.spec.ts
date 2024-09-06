@@ -1,5 +1,5 @@
 import { NodeType } from "../model";
-import { Tree, Node } from "../helpers/tree";
+import { Tree, Node } from "../src/helpers/tree";
 
 describe('buildTree', () => {
     it('should correctly add the root and create a simple tree', () => {
@@ -14,7 +14,7 @@ describe('buildTree', () => {
         const formula = 'if(x-y){if(a+b==0){dostuff}elseif(x-y==1){dostuff}}else{elsedostuff}';
         try {
             new Tree(formula);
-        } catch (e) {
+        } catch (e: any) {
             expect(e.message).toEqual('error processing input: unexpected blank false block')
         }
     });

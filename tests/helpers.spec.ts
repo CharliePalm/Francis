@@ -1,4 +1,4 @@
-import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from '../helpers/helpers';
+import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from '../src/helpers/helpers';
 
 describe('helper functions', () => {
     describe('getBlockContent', () => {

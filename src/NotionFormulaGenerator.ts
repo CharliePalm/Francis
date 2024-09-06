@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Tree, Node } from "./helpers/tree";
-import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionPerson, NotionDate, Person, NotionDateType, PropertyType, Date, Property } from "./model";
+import { NodeType, NotionList, NotionType, NotionString, StyleType, NotionDate, Person, NotionDateType, PropertyType, Date, Property } from "../model";
 
 export abstract class NotionFormulaGenerator {
     tree!: Tree;

@@ -1,4 +1,4 @@
-import { NotionFormulaGenerator } from './NotionFormulaGenerator';
+import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
 import * as Model from './model';
 class MyFirstFormula extends NotionFormulaGenerator {
     // define DB properties here:
