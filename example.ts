@@ -1,5 +1,5 @@
 import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
-import * as Model from './model';
+import * as Model from './src/model';
 class ExampleFormula extends NotionFormulaGenerator {
     public dueDate = new Model.Date('Due date');
     public status = new Model.Select('Status');

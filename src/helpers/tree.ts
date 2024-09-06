@@ -1,4 +1,4 @@
-import { NodeType, Property } from '../../model';
+import { NodeType, Property } from '../model';
 import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from './helpers';
 
 /**

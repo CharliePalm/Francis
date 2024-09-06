@@ -6,25 +6,29 @@
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/preset-env": "^7.21.4",
-    "@types/jest": "^29.5.0",
+    "@arethetypeswrong/cli": "^0.15.4",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "@changesets/cli": "^2.27.8",
+    "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
     "babel-jest": "^29.5.0",
     "eslint": "^8.38.0",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.5.4"
   },
   "scripts": {
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "build": "tsc"
+    "build": "tsc",
+    "check-exports": "attw --pack .",
+    "local-release": "changeset version && changeset publish"
   },
   "author": "Charlie Palm",
   "license": "MIT",
-  "main": "NotionFormulaGenerator.ts",
+  "main": "dist/index.js",
   "directories": {
     "test": "tests"
   },

@@ -1,4 +1,4 @@
-import * as Model from '../model';
+import * as Model from '../src/model';
 
 /*
  * This is a test of the compiler, not of logic. If this test compiler, it's good to go. 

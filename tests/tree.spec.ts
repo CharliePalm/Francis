@@ -1,4 +1,6 @@
-import { NodeType } from "../model";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { NodeType } from "../src/model";
 import { Tree, Node } from "../src/helpers/tree";
 
 describe('buildTree', () => {

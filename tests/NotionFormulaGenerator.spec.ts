@@ -1,6 +1,6 @@
 import { NotionFormulaGenerator } from "../src/NotionFormulaGenerator";
 import { Node } from '../src/helpers/tree';
-import * as Model from "../model";
+import * as Model from "../src/model";
 
 describe('notionFormulaGenerator', () => {
     class BasicTestClass extends NotionFormulaGenerator {
