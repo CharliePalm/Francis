@@ -1,6 +1,6 @@
 {
   "name": "notion-formula-generator",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Generate Notion formulas with typescript code",
   "dependencies": {
     "ts-node": "^10.9.1"
