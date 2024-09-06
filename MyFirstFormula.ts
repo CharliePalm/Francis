@@ -6,7 +6,7 @@ class MyFirstFormula extends NotionFormulaGenerator {
 
     // fill in your formula function here:
     formula() {
-        if (this.myProperty.value) {
+        if (this.myProperty) {
             return 1;
         }
         return 0;
