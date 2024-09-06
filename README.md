@@ -1,7 +1,7 @@
 # Francis
 [![npm](https://img.shields.io/badge/npm-v2.0.1-blue)](https://www.npmjs.com/package/notion-formula-generator)
 [![License](https://img.shields.io/badge/license-MIT-purple)](https://opensource.org/licenses/MIT)
-[![Author](https://img.shields.io/badge/Author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
+[![Author](https://img.shields.io/badge/author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
 
 (updated to support Notion's new formula API!)
 
