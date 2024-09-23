@@ -7,8 +7,9 @@ import { getBlockContent, getCallbackStatement, getStatement, parseCallbackState
 export class Tree {
     root!: Node;
     size = 0;
-    constructor(formula?: string) {
-        if (formula) this.dfp(formula, undefined)
+    constructor(formula?: string, reverse = false) {
+        if (formula && !reverse) this.dfp(formula)
+        if (formula && reverse) this.reverseDfp(formula);
     }
 
     add(statement: string | undefined, parent: Node | undefined, type: NodeType, isTrueChild?: boolean) {
@@ -24,9 +25,8 @@ export class Tree {
             if (isTrueChild === undefined) {
                 throw new Error('attempted to add node with parent without isTrueChild undefined');
             }
-            isTrueChild ?
-                parent.addTrueChild(node) :
-                parent.addFalseChild(node);
+            if (isTrueChild) parent.addTrueChild(node)
+            else parent.addFalseChild(node);
         }
         this.size += 1;
         return node;
@@ -37,27 +37,27 @@ export class Tree {
      * right -> true statement. left -> false statement
      * @param block
      */
-    dfp(block: string, parent: Node | undefined, onTrueSide?: boolean) {
+    dfp(block: string, parent?: Node, onTrueSide?: boolean) {
         const statement = getStatement(block);
         // no statement implies that getBlockContent returned our statement for us
         if (!statement) {
             // return case
             this.add(block, parent, NodeType.Return, onTrueSide);
             return;
-        } else if (statement == block) {
+        } else if (statement === block) {
             // wrapper function case
             let bottomPtr = 0, topPtr = 0, depth = 0;
             let parsedStatement = '';
             const children: string[] = [];
             while (topPtr < statement.length) {
-                if (statement[topPtr] == '(') {
+                if (statement[topPtr] === '(') {
                     depth++;
-                    if (depth == 1) {
+                    if (depth === 1) {
                         parsedStatement += statement.substring(bottomPtr, topPtr + 1)+')';
                         bottomPtr = topPtr + 1;
                     }
-                } else if (statement[topPtr] == ')') {
-                    if (depth == 1) {
+                } else if (statement[topPtr] === ')') {
+                    if (depth === 1) {
                         children.push(statement.substring(bottomPtr, topPtr));
                         bottomPtr = topPtr + 1;
                     }
@@ -74,7 +74,7 @@ export class Tree {
             }
             children.forEach((childStatement) => {
                 this.dfp(childStatement, node, true);
-            })
+            });
         } else {
             // logic case
             const node = this.add(statement, parent, NodeType.Logic, onTrueSide);
@@ -92,6 +92,58 @@ export class Tree {
                 node.tail = f.substring(f.indexOf('}') + 1, f.length);
             }
             this.dfp(filteredFalseBlock, node, false);   
+        }
+    }
+
+    /**
+     * reverse in this context means Notion -> Typescript, not reversing logic.
+     * This instantiates a tree from a notion formula for processing and converting to typescript
+     * Because notion formulas are much simpler and rigid than typescript, this process is a lot less hacky
+     * @param formula the notion formula to process
+     */
+    reverseDfp(block: string, parent?: Node, onTrueSide = false) {
+        console.log(block);
+        const firstIdx = block.indexOf('(');
+        if (firstIdx === -1) {
+            // return case
+            this.add(block, parent, NodeType.Return, onTrueSide);
+        } else if (block.substring(0, 2) === 'if') {
+            console.log(block);
+            // if (...) {...} case
+            let depth = 0;
+            let bottomIdx = 3;
+            const matches = [];
+            for (let i = 2; i < block.length; i++) {
+                depth += block[i] === '(' ? 1 : block[i] === ')' ? -1 : 0;
+                if (depth === 1 && block[i] === ',') {
+                    matches.push(block.substring(bottomIdx, i));
+                    bottomIdx = i + 1;
+                }
+            }
+            matches.push(block.substring(bottomIdx, block.length - 1));
+            // Use match to capture the three groups
+            console.log(matches);
+            if (matches.length === 3) {
+                parent = this.add(matches[0], parent, NodeType.Logic, onTrueSide);
+                this.reverseDfp(matches[1], parent, true);
+                this.reverseDfp(matches[2], parent, false);
+            } else { throw new Error('improperly formatted if block detected: ' + block + '\n got matches ' + JSON.stringify(matches?.toString())) }
+        } else if (/^[a-zA-Z0-9]+\(/.test(block)) {
+            // wrapper case
+            const wrappers = block.split('(');
+            let wrapper = '';
+            let ct = 0;
+            for (let i = 0; i < wrappers.length; i++) {
+                if (wrappers[i] === 'if') {
+                    break;
+                }
+                wrapper += 'this.' + wrappers[i] + '(';
+                ct += 1;
+            }
+            parent = this.add(wrapper, parent, NodeType.Wrapper, onTrueSide);
+            this.reverseDfp(block.substring(wrapper.length - 5 * ct, block.length - ct), parent, onTrueSide);
+        } else {
+            // TODO handle ternaries
         }
     }
     /**
@@ -149,7 +201,7 @@ export class Node {
 
     /**
      * replaces all references to builtin notion functions and typescript operators
-     * @param node 
+     * @param node
      */
     public replaceFunctionsAndOperators(): void {
         if (!this) return;
@@ -158,7 +210,7 @@ export class Node {
             .replace(/this\./g, '')
             .replace(/&&/g, ' and ')
             .replace(/\|\|/g, ' or ')
-            .replace(/!(?!=)/g, ' not ');
+            .replace(/!(?!==)/g, ' not ');
     }
 
     /**

@@ -1,3 +1,5 @@
+import format from "prettier-eslint";
+
 /**
  * returns the first instance of logic enclosed in brackets or parentheses
  * @param block - the block to parse
@@ -6,14 +8,14 @@
 export function getStatement(block: string): string | undefined {
     let index = block.indexOf('{');
     // wrapper function case:
-    if (block.startsWith('this.') && (index != -1)) {
+    if (block.startsWith('this.') && (index !== -1)) {
         return block;
     }
     // logic case
-    if (index != -1) {
+    if (index !== -1) {
         while (index > 0) {
             index -= 1;
-            if (block[index] == ')') {
+            if (block[index] === ')') {
                 break;
             }
         }
@@ -32,15 +34,15 @@ export function getStatement(block: string): string | undefined {
 export function getBlockContent(block: string, start = -1): [string, string | undefined] {
     start = start !== -1 ? start : block.indexOf('{');
     // base case: block is a return statement
-    if (start == -1) {
+    if (start === -1) {
         return [block.substring(0, block.lastIndexOf('}')), undefined];
     }
     let depth = 0;
     let index = start;
     while (index < block.length) {
-        depth += block[index] == '{' ? 1 : block[index] == '}' ? -1 : 0;
+        depth += block[index] === '{' ? 1 : block[index] === '}' ? -1 : 0;
         // first index should always increment depth so if depth is 0 we return
-        if (depth == 0) {
+        if (depth === 0) {
             break;
         }
         index++;
@@ -66,14 +68,14 @@ export function getFalseBlockContent(block: string, index: number): string | und
     // fall through case
     const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
     // if the last part of the block is the fall through case we got lucky
-    return lastClosedBracketIdx == -1 ? falseBlock : falseBlock.substring(0, lastClosedBracketIdx);
+    return lastClosedBracketIdx === -1 ? falseBlock : falseBlock.substring(0, lastClosedBracketIdx);
     // we'll handle this in the future. Right now we're just returning the false block in the error case but this indicates we'd have to fall out of the current if block.
     // this is more hassle than it's worth to develop at the moment so I'm leaving this here for now but will update in the future
-    throw new Error('Please avoid nesting an if block with no else block. For example: if (1 == 1){ if (2 == 2) {}} should just be if (1==1 and 2==2) {}')
+    throw new Error('Please avoid nesting an if block with no else block. For example: if (1 === 1){ if (2 === 2) {}} should just be if (1===1 and 2===2) {}')
 }
 
 /**
- * parses a notion callback from a typescript callback
+ * creates a notion callback from a typescript callback
  */
 export function getCallbackStatement(block: string): string[] {
     let index = 0;
@@ -82,20 +84,20 @@ export function getCallbackStatement(block: string): string[] {
     let depth = 0;
     const callbacks: string[] = [];
     while (index < block.length) {
-        if (block[index] == '(') {
+        if (block[index] === '(') {
             if (!inCallback) {
                 lastOpenParenthesesIndex = index;
             }
             depth = inCallback ? depth + 1 : 1;
-        } else if (block[index] == ')' && inCallback) {
+        } else if (block[index] === ')' && inCallback) {
             depth -= 1;
-            if (depth == 0) {
+            if (depth === 0) {
                 callbacks.push(block.substring(lastOpenParenthesesIndex, index));
                 inCallback = false;
             }
         }
 
-        if (block[index].concat(block[index+1]) == '=>') {
+        if (block[index].concat(block[index+1]) === '=>') {
             inCallback = true;
         }
         index++;
@@ -115,3 +117,10 @@ export function parseCallbackStatement(callback: string): string {
     });
     return callback.substring(callback.indexOf('=>') + 2);
 }
+
+export const esLintFormat = (code: string) => format({
+    text: code,
+    prettierOptions: {
+        parser: 'typescript',
+    }
+});

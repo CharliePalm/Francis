@@ -40,7 +40,7 @@ export abstract class NotionFormulaGenerator {
                 (match, constName) => 
                     constMap.get(constName) ?? match
                 )
-            .replace(/'/g, '"') // replace ' strings with "
+            .replace(/['`]/g, '"') // replace ' strings with "
             .replace(/(?<!\d)(\.)(?=\d)/g, '0$1') // add 0 in front of decimals that are between 0 and 1 (new update to formula API)
             .replace(/if\s*\([^{}]*\)\s*{\s*}\s*(else\s+if\s*\([^{}]*\)\s*{\s*}\s*)*/g, '') // remove empty ifs
             .replace(/"[^"]*"|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
@@ -48,7 +48,9 @@ export abstract class NotionFormulaGenerator {
             .replace(/;/g, '') // Remove semicolons
             .slice(10, -1); // Remove formula() {} brackets
         // create tree
+        console.log(formulaBody);
         this.tree = new Tree(formulaBody);
+        console.log(this.tree);
         // replace references to database properties
         this.tree.root.replaceProperties(this.buildDbProps());
         const endResult = this.build(this.tree.root, '');

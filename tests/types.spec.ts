@@ -39,7 +39,7 @@ xdescribe('typing', () => {
         });
 
         it('uses length correctly and not the strings length', () => {
-            expect(y.length().value == 3).toBeDefined();
+            expect(y.length().value === 3).toBeDefined();
             expect(y.length().abs()).toBeDefined();
         });
     });
@@ -71,8 +71,8 @@ xdescribe('typing', () => {
         });
 
         it('allows chaining method calls and comparing to primitives or objects', () => {
-            expect(y.max(1, 5).divide(y).sqrt().floor() == x).toBeDefined();
-            expect(y.max(1, 5).divide(y).sqrt().ceil().value == 3).toBeDefined();
+            expect(y.max(1, 5).divide(y).sqrt().floor() === x).toBeDefined();
+            expect(y.max(1, 5).divide(y).sqrt().ceil().value === 3).toBeDefined();
         });
     });
 

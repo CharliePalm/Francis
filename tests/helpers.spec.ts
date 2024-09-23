@@ -23,7 +23,7 @@ describe('helper functions', () => {
         });
 
         it('should handle else ifs', () => {
-            expect(getBlockContent('if(x<y){a+b}elseif(x==y){b-a}else{b*a}')).toEqual(['a+b', 'if(x==y){b-a}else{b*a}'])
+            expect(getBlockContent('if(x<y){a+b}elseif(x===y){b-a}else{b*a}')).toEqual(['a+b', 'if(x===y){b-a}else{b*a}'])
         });
 
         it('should handle parentheses in if functions', () => {
@@ -31,37 +31,37 @@ describe('helper functions', () => {
         });
 
         it('should handle parentheses in return functions', () => {
-            expect(getBlockContent('if(x==y){(x*y)+1<(3*x)+2}else{(x-y)*2+(3*x)*3}')).toEqual(['(x*y)+1<(3*x)+2', '(x-y)*2+(3*x)*3'])
+            expect(getBlockContent('if(x===y){(x*y)+1<(3*x)+2}else{(x-y)*2+(3*x)*3}')).toEqual(['(x*y)+1<(3*x)+2', '(x-y)*2+(3*x)*3'])
         });
 
         it('should handle simple fall through if blocks', () => {
-            expect(getBlockContent('if(test==1){1}2')).toEqual(['1', '2'])
+            expect(getBlockContent('if(test===1){1}2')).toEqual(['1', '2'])
         });
 
         it('should handle simple fall through if/else if blocks', () => {
-            expect(getBlockContent('if(test==1){1}elseif(test==-1){3}2')).toEqual(['1', 'if(test==-1){3}2'])
+            expect(getBlockContent('if(test===1){1}elseif(test===-1){3}2')).toEqual(['1', 'if(test===-1){3}2'])
         });
 
         it('should handle tails with elses', () => {
-            expect(getBlockContent('if(x==y){4}else{2}*2')).toEqual(['4', '2}*2'])
+            expect(getBlockContent('if(x===y){4}else{2}*2')).toEqual(['4', '2}*2'])
         });
 
         it('should handle tails with else ifs', () => {
-            expect(getBlockContent('if(x==y){4}elseif(a==b){3}else{2}*2')).toEqual(['4', 'if(a==b){3}else{2}*2'])
+            expect(getBlockContent('if(x===y){4}elseif(a===b){3}else{2}*2')).toEqual(['4', 'if(a===b){3}else{2}*2'])
         });
     });
 
     describe('get statement', () => {
         it('should return the logic in parentheses for a logical staement', () => {
-            expect(getStatement('if(test==true){do..stuff...here}')).toEqual('test==true')
+            expect(getStatement('if(test===true){do..stuff...here}')).toEqual('test===true')
         });
 
         it('should return the logic in parentheses for a logical staement when else if is present', () => {
-            expect(getStatement('if(test==true)elseif{do..stuff...here}')).toEqual('test==true');
+            expect(getStatement('if(test===true)elseif{do..stuff...here}')).toEqual('test===true');
         });
 
         it('should return the logic in parentheses for a logical staement when else is present', () => {
-            expect(getStatement('if(test==true)else{do..stuff...here}')).toEqual('test==true');
+            expect(getStatement('if(test===true)else{do..stuff...here}')).toEqual('test===true');
         });
         
         it('should return undefined in brackets for a return statement', () => {
@@ -71,30 +71,30 @@ describe('helper functions', () => {
 
     describe('getCallbackStatement', () => {
         it('should get a callback', () => {
-            const result = getCallbackStatement('if(1==1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop"))');
+            const result = getCallbackStatement('if(1===1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop"))');
             expect(result).toEqual(['(index,current) => current.lower()']);
         });
 
         it('should get multiple callback', () => {
-            const result = getCallbackStatement('if(1==1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop").filter((current) => current != "test"))');
-            expect(result).toEqual(['(index,current) => current.lower()', '(current) => current != "test"']);
+            const result = getCallbackStatement('if(1===1,prop("My Prop").map((index,current) => current.lower()), prop("My Prop").filter((current) => current !== "test"))');
+            expect(result).toEqual(['(index,current) => current.lower()', '(current) => current !== "test"']);
         });
 
         it('should replace this callback that it isnt for some reason', () => {
-            const result = getCallbackStatement(`prop("formula").map((a,b)=>a==prop("formula").length()-1?"last value of list":b.lower())`);
-            expect(result).toEqual(['(a,b)=>a==prop("formula").length()-1?"last value of list":b.lower()'])
+            const result = getCallbackStatement(`prop("formula").map((a,b)=>a===prop("formula").length()-1?"last value of list":b.lower())`);
+            expect(result).toEqual(['(a,b)=>a===prop("formula").length()-1?"last value of list":b.lower()'])
         });
     });
 
     describe('parseCallback ', () => {
         it('should parse a callback', () => {
-            const result = parseCallbackStatement('(current)=>current!="test"');
-            expect(result).toEqual('current!="test"');
+            const result = parseCallbackStatement('(current)=>current!=="test"');
+            expect(result).toEqual('current!=="test"');
         });
 
         it('should replace a single variable callback', () => {
-            const result = parseCallbackStatement('(weirdVariable)=>weirdVariable!="test"');
-            expect(result).toEqual('current!="test"');
+            const result = parseCallbackStatement('(weirdVariable)=>weirdVariable!=="test"');
+            expect(result).toEqual('current!=="test"');
         });
 
         it('should replace a multi variable callback', () => {

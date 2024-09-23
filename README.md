@@ -131,8 +131,9 @@ Which will lead to the same result, just with ternaries instead of the notion if
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
-## New in v2.0.2
-Francis is now npm ready! Happy formulating!
+## New in v2.0.3
+Francis now has a 'codify' function - a utility to convert a notion formula into a NotionFormulaGenerator object.
+This is currently a beta feature and has only been tested on small formulas.
 
 ## FAQ
 

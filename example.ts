@@ -17,16 +17,16 @@ class ExampleFormula extends NotionFormulaGenerator {
 
     buildFormula() {
         const addIfNotStarted = 10;
-        if (this.status.value == 'Done' || this.blocked.value) {
+        if (this.status.value === 'Done' || this.blocked.value) {
             return 0;
         } else if (this.empty(this.dueDate.value)) {
             // for tasks with no real due date, we want to prioritize the dormant sigmoid as we won't be adding the due date sigmoid
-            if (this.status.value == 'Not started' || this.completionPercent.value == 0) {
+            if (this.status.value === 'Not started' || this.completionPercent.value === 0) {
                 return this.dormantSigmoid() * 3 + addIfNotStarted;
             } else {
                 return 1.1 * this.dormantSigmoid() * this.getCompletionPercentageFactor();
             }
-        } else if (this.status.value == 'Not started' || this.completionPercent.value == 0) {
+        } else if (this.status.value === 'Not started' || this.completionPercent.value === 0) {
             return (this.dueDateSigmoid() + this.dormantSigmoid()) * 2 + addIfNotStarted;
         }
         return ((this.dueDateSigmoid() + this.dormantSigmoid()) / 2) * this.getCompletionPercentageFactor();

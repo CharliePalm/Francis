@@ -13,7 +13,7 @@ describe('buildTree', () => {
     });
 
     it('should throw error when an else block is missing', () => {
-        const formula = 'if(x-y){if(a+b==0){dostuff}elseif(x-y==1){dostuff}}else{elsedostuff}';
+        const formula = 'if(x-y){if(a+b===0){dostuff}elseif(x-y===1){dostuff}}else{elsedostuff}';
         try {
             new Tree(formula);
         } catch (e: any) {
@@ -22,7 +22,7 @@ describe('buildTree', () => {
     });
 
     it('should correctly create a complex tree', () => {
-        const formula = 'if(x<y){if(a>b){if(y<z){z+1}else{z-1}}else{1+1}}else{if(x<y){if(y<z){z+1}else{z-1}}else{if(x==y){a+b}else{b-a}}}';
+        const formula = 'if(x<y){if(a>b){if(y<z){z+1}else{z-1}}else{1+1}}else{if(x<y){if(y<z){z+1}else{z-1}}else{if(x===y){a+b}else{b-a}}}';
         const tree = new Tree(formula);
         let tc: Node, fc: Node;
         expect(tree.root.statement).toEqual('x<y');
@@ -60,7 +60,7 @@ describe('buildTree', () => {
 
         fc = tree.root.falseChild;
         fc = fc.falseChild;
-        expect(fc?.statement).toEqual('x==y');
+        expect(fc?.statement).toEqual('x===y');
         expect(fc?.type).toEqual(NodeType.Logic);
         expect(fc?.trueChild?.statement).toEqual('a+b');
         expect(fc?.trueChild?.type).toEqual(NodeType.Return);
