@@ -48,9 +48,7 @@ export abstract class NotionFormulaGenerator {
             .replace(/;/g, '') // Remove semicolons
             .slice(10, -1); // Remove formula() {} brackets
         // create tree
-        console.log(formulaBody);
         this.tree = new Tree(formulaBody);
-        console.log(this.tree);
         // replace references to database properties
         this.tree.root.replaceProperties(this.buildDbProps());
         const endResult = this.build(this.tree.root, '');

@@ -102,13 +102,11 @@ export class Tree {
      * @param formula the notion formula to process
      */
     reverseDfp(block: string, parent?: Node, onTrueSide = false) {
-        console.log(block);
         const firstIdx = block.indexOf('(');
         if (firstIdx === -1) {
             // return case
             this.add(block, parent, NodeType.Return, onTrueSide);
         } else if (block.substring(0, 2) === 'if') {
-            console.log(block);
             // if (...) {...} case
             let depth = 0;
             let bottomIdx = 3;
@@ -122,7 +120,6 @@ export class Tree {
             }
             matches.push(block.substring(bottomIdx, block.length - 1));
             // Use match to capture the three groups
-            console.log(matches);
             if (matches.length === 3) {
                 parent = this.add(matches[0], parent, NodeType.Logic, onTrueSide);
                 this.reverseDfp(matches[1], parent, true);
