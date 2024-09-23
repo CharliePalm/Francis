@@ -128,17 +128,17 @@ export class Tree {
         } else if (/^[a-zA-Z0-9]+\(/.test(block)) {
             // wrapper case
             const wrappers = block.split('(');
-            let wrapper = '';
+            let completeWrapper = '';
             let ct = 0;
-            for (let i = 0; i < wrappers.length; i++) {
-                if (wrappers[i] === 'if') {
+            for (const wrapper of wrappers) {
+                if (wrapper == 'if') {
                     break;
                 }
-                wrapper += 'this.' + wrappers[i] + '(';
+                completeWrapper += 'this.' + wrapper + '(';
                 ct += 1;
             }
-            parent = this.add(wrapper, parent, NodeType.Wrapper, onTrueSide);
-            this.reverseDfp(block.substring(wrapper.length - 5 * ct, block.length - ct), parent, onTrueSide);
+            parent = this.add(completeWrapper, parent, NodeType.Wrapper, onTrueSide);
+            this.reverseDfp(block.substring(completeWrapper.length - 5 * ct, block.length - ct), parent, onTrueSide);
         } else {
             // TODO handle ternaries
         }
@@ -152,7 +152,7 @@ export class Tree {
         return toRet;
     }
 
-    private arrHelper(node: Node, arr: Array<string>, index: number) {
+    private arrHelper(node: Node, arr: string[], index: number) {
         if (!node) { return; }
         arr[index] = node.statement;
         this.arrHelper(node.trueChild, arr, index * 2 + 1);
@@ -213,7 +213,7 @@ export class Node {
     /**
      * replaces all references to db properties
      */
-    public replaceProperties(propertyMap: {[key: string]: Property}): void {
+    public replaceProperties(propertyMap: Record<string, Property>): void {
         if (!this) return;
         // replace .value
         this.statement = this.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}")`);

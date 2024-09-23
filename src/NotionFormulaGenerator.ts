@@ -79,7 +79,7 @@ export abstract class NotionFormulaGenerator {
                     currentFormula += statement;
                     currentFormula = this.build(child, currentFormula);
                     currentFormula += ')';
-                    node.statement = node.statement.substring(idx + 1, node.statement.length)
+                    node.statement = node.statement.substring(idx + 1, node.statement.length);
                 });
                 currentFormula += node.tail;
                 break;
@@ -87,10 +87,10 @@ export abstract class NotionFormulaGenerator {
         return currentFormula;
     }
 
-    private buildDbProps(): {[key: string]: Property} {
-        const thisObj = this as {[key: string]: any};
+    private buildDbProps(): Record<string, Property> {
+        const thisObj = this as Record<string, any>;
         const validPropertyTypes = Object.values(PropertyType);
-        const dbObj: {[key: string]: Property}  = {};
+        const dbObj: Record<string, Property>  = {};
         Object.keys(thisObj)
             .filter((key) => validPropertyTypes.includes(thisObj[key].constructor?.name))
             .forEach((key) => dbObj[key] = thisObj[key]);
