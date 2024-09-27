@@ -24,7 +24,7 @@ class MyFirstFormula extends NotionFormulaGenerator {
 
 
 const build = (node: Node, wrappers: [string, string][], currentFormula = ''): string => {
-    switch (node.type) {
+    switch (node?.type) {
         case NodeType.Logic:
             currentFormula += 'if (' + node.statement + ') {'
             currentFormula = build(node.trueChild, wrappers, currentFormula) + '} else {'
@@ -50,12 +50,16 @@ const build = (node: Node, wrappers: [string, string][], currentFormula = ''): s
 
 export async function codify(formula: string, properties: Record<string, object>): Promise<string> {
     const propertyVals = Object.keys(properties).map((p) => properties[p]) as Record<string, string>[];
-    formula = formula.replace(/prop\("(.*?)"\)/g, (match, propName) => `this.${lowerCamel(propName)}`);
+    formula = formula.replace(/[pP]rop\("(.*?)"\)/g, (match, propName) => `this.${lowerCamel(propName)}`)
+        .replace(/(?<!this\.)\b(?!if\b)([a-zA-Z_][a-zA-Z0-9_]*)\(/g, (match, word) => `this.${word}(`);
+    console.log(formula);
     if (formula.charAt(0) === '(') { formula = formula.substring(1, formula.length) }
     const tree = new Tree(formula, true);
+    console.log(tree.root);
     // replace references to database properties
     const wrappers: [string, string][] = [];
     formula = build(tree.root, wrappers);
+    console.log(formula);
     const result = await getFormula(formula, propertyVals, wrappers);
     return result;
 }

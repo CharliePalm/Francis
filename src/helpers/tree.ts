@@ -136,11 +136,22 @@ export class Tree {
      * @param formula the notion formula to process
      */
     reverseDfp(block: string, parent?: Node, onTrueSide = false) {
-        const firstIdx = block.indexOf('(');
-        if (firstIdx === -1) {
-            // return case
-            this.add(block, parent, NodeType.Return, onTrueSide);
-        } else if (block.substring(0, 2) === 'if') {
+        console.log(block);
+        const wrapperHandler = (wrapperBlock: string) => {
+            // wrapper case
+            let depth = 0, i = 0;
+            for (i = 0; i < wrapperBlock.length - 4; i++) {
+                if (wrapperBlock.substring(i, i + 4) === '(if(') {
+                    break;
+                }
+                depth += wrapperBlock[i] === '(' ? 1 : wrapperBlock[i] === ')' ? -1 : 0;
+            }
+            parent = this.add(wrapperBlock.substring(0, i), parent, NodeType.Wrapper, onTrueSide);
+            console.log(wrapperBlock.substring(0, i));
+            this.reverseDfp(wrapperBlock.substring(i + 1 , wrapperBlock.length - depth - 1), parent, onTrueSide);
+        };
+
+        if (block.startsWith('if(')) {
             // if (...) {...} case
             let depth = 0;
             let bottomIdx = 3;
@@ -153,28 +164,22 @@ export class Tree {
                 }
             }
             matches.push(block.substring(bottomIdx, block.length - 1));
+            console.log(matches);
             // Use match to capture the three groups
             if (matches.length === 3) {
+                if (/\bif\(/.test(matches[0])) {
+                    // nested if block
+                    console.log('hello!')
+                }
                 parent = this.add(matches[0], parent, NodeType.Logic, onTrueSide);
                 this.reverseDfp(matches[1], parent, true);
                 this.reverseDfp(matches[2], parent, false);
             } else { throw new Error('improperly formatted if block detected: ' + block + '\n got matches ' + JSON.stringify(matches?.toString())) }
-        } else if (/^[a-zA-Z0-9]+\(/.test(block)) {
-            // wrapper case
-            const wrappers = block.split('(');
-            let completeWrapper = '';
-            let ct = 0;
-            for (const wrapper of wrappers) {
-                if (wrapper == 'if') {
-                    break;
-                }
-                completeWrapper += 'this.' + wrapper + '(';
-                ct += 1;
-            }
-            parent = this.add(completeWrapper, parent, NodeType.Wrapper, onTrueSide);
-            this.reverseDfp(block.substring(completeWrapper.length - 5 * ct, block.length - ct), parent, onTrueSide);
+        } else if (block.includes('(if(')) {
+            wrapperHandler(block);
         } else {
-            // TODO handle ternaries ?
+            // return case
+            this.add(block, parent, NodeType.Return, onTrueSide);
         }
     }
 
@@ -228,21 +233,21 @@ export class Node {
     
     addTrueChild(child: Node) {
         if (this.type !== NodeType.Logic) {
-            throw new Error('cannot add true child to non logic node')
+            throw new Error('cannot add child to non logic node');
         }
         this.trueChild = child;
     }
 
     addFalseChild(child: Node) {
         if (this.type !== NodeType.Logic) {
-            throw new Error('cannot add false child to non logic node')
+            throw new Error('cannot add false child to non logic node');
         }
         this.falseChild = child;
     }
 
     addWrappedChild(child: Node) {
         if (this.type === NodeType.Return) {
-            throw new Error('cannot add wrapped child to return node')
+            throw new Error('cannot add false child to return node or wrapper node');
         }
         if (!this.wrappedChildren) this.wrappedChildren = [];
         this.wrappedChildren.push(child);
