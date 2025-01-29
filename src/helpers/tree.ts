@@ -12,14 +12,14 @@ export class Tree {
         if (formula && reverse) this.reverseDfp(formula);
     }
 
-    add(statement: string | undefined, parent: Node | undefined, type: NodeType, isTrueChild?: boolean) {
-        if (!statement) {
-            throw new Error('attempted to add blank statement to tree');
-        }
+    add(statement: string, parent: Node | undefined, type: NodeType, isTrueChild?: boolean) {
+        // if (statement === undefined || statement === null) {
+        //     throw new Error('attempted to add blank statement to tree with parent statement: ' + parent?.statement);
+        // }
         const node = new Node(type, statement)
         if (!parent) {
             this.root = node;
-        } else if (parent.type === NodeType.Wrapper) {
+        } else if (parent.type === NodeType.Wrapper || parent.type === NodeType.Combination || parent.nesting) {
             parent.addWrappedChild(node);
         } else {
             if (isTrueChild === undefined) {
@@ -44,7 +44,9 @@ export class Tree {
             // return case
             this.add(block, parent, NodeType.Return, onTrueSide);
             return;
-        } else if (statement === block) {
+        }
+
+        if (statement === block) {
             // wrapper function case
             let bottomPtr = 0, topPtr = 0, depth = 0;
             let parsedStatement = '';
@@ -70,29 +72,61 @@ export class Tree {
             if (topPtr !== bottomPtr) {
                 // we don't want the tail to include the } character if the tail comes at the end of a return statement,
                 // so this bit of logic on the end takes care of that
-                node.tail = statement.substring(bottomPtr, statement[topPtr-1] !== '}' ? topPtr : topPtr - 1);
+                node.tail = statement.substring(bottomPtr, statement[topPtr-1] !== '}' ? topPtr : topPtr - 1).replace('}', '');
             }
             children.forEach((childStatement) => {
-                this.dfp(childStatement, node, true);
+                this.dfp(childStatement, node);
             });
+            return;
+        }
+
+        // check for combination nodes
+        const children = this.getCombinationNodeChildren(block);
+        if (children.length > 2) {
+            const node = this.add('', parent, NodeType.Combination, onTrueSide);
+            children.forEach((childStatement) => this.dfp(childStatement, node));
+            return;
+        }
+
+        // check for nested logic nodes
+        let node: Node
+        if (statement.includes('if(')) {
+            const endIdx = Math.max(statement.lastIndexOf(')'), statement.lastIndexOf('}'));
+            node = this.add(statement.substring(endIdx), parent, NodeType.Logic, onTrueSide);
+            node.nesting = true;
+            this.dfp(statement.substring(0, endIdx), node);
+            node.nesting = false;
         } else {
             // logic case
-            const node = this.add(statement, parent, NodeType.Logic, onTrueSide);
-            const [t, f] = getBlockContent(block);
-
-            this.dfp(t, node, true);
-            if (!f) {
-                throw new Error('error processing input: unexpected blank false block');
-            }
-
-            let filteredFalseBlock = f;
-            // when we have a lone } char in the false block, that indicates that we have a tail (that comes after the } char)
-            if (f.indexOf('{') === -1 && f.indexOf('}') !== -1) {
-                filteredFalseBlock = f.substring(0, f.indexOf('}'));
-                node.tail = f.substring(f.indexOf('}') + 1, f.length);
-            }
-            this.dfp(filteredFalseBlock, node, false);   
+            node = this.add(statement, parent, NodeType.Logic, onTrueSide);
         }
+
+        // "nose" on the front - arithmetic or something we need to include before the if statement
+        if (block.slice(0, 2) !== 'if') {
+            node.nose = block.slice(0, block.indexOf('if('));
+        }
+        const [t, f] = getBlockContent(block);
+        if (!f) {
+            throw new Error('error processing input: unexpected blank false block from true block: ' + t);
+        }
+        let updatedFalseBlock = f;
+        if (!parent?.nesting) {
+            let [closed, open, lastClosedIdx] = [0, 0, -1];
+            for (let idx = 0; idx < f.length; idx++) {
+                closed += f[idx] === '}' ? 1 : 0;
+                open += (f[idx] === '{' ? 1 : 0);
+                lastClosedIdx = f[idx] === '}' ? idx : lastClosedIdx;
+            }
+
+            if (lastClosedIdx !== -1 && closed !== open) {
+                node.tail = f.substring(lastClosedIdx + 1);
+                updatedFalseBlock = f.substring(0, lastClosedIdx);
+            }
+        } else {
+            const lastCLosedIdx = f.lastIndexOf('}');
+            updatedFalseBlock = lastCLosedIdx !== -1 ? f.substring(0, lastCLosedIdx) : f;
+        }
+        this.dfp(t, node, true); this.dfp(updatedFalseBlock, node, false);
     }
 
     /**
@@ -140,23 +174,45 @@ export class Tree {
             parent = this.add(completeWrapper, parent, NodeType.Wrapper, onTrueSide);
             this.reverseDfp(block.substring(completeWrapper.length - 5 * ct, block.length - ct), parent, onTrueSide);
         } else {
-            // TODO handle ternaries
+            // TODO handle ternaries ?
         }
     }
-    /**
-     * returns an array representation of the tree in a standard binary tree array
-     */
-    toArray() {
-        const toRet = new Array<string>(this.size);
-        this.arrHelper(this.root, toRet, 0);
-        return toRet;
-    }
 
-    private arrHelper(node: Node, arr: string[], index: number) {
-        if (!node) { return; }
-        arr[index] = node.statement;
-        this.arrHelper(node.trueChild, arr, index * 2 + 1);
-        this.arrHelper(node.falseChild, arr, index * 2 + 2);
+    /**
+     * Checks if statement is logic separated by operators 
+     * @param block 
+     * @returns the split statement
+     */
+    private getCombinationNodeChildren(block: string): string[] {
+        // check for combination node:
+        const children: string[] = [];
+        let [index, bottomPtr, depth] = [0, 0, 0];
+        while (index < block.length) {
+            if (['(', '{'].includes(block[index])) {
+                depth += 1;
+            } else if ([')', '}'].includes(block[index])) {
+                depth -= 1;
+                if (index === block.length - 1 && children.length > 1) {
+                    children.push(block.substring(bottomPtr, block.length));
+                    break;
+                }
+            } else if (
+                depth === 0 && (['+', '-', '/', '*', '<', '>'].includes(block[index]) || 
+                (index !== 0 && ['||', '&&'].includes(block[index - 1] + block[index])))
+            ) {
+                const isDoubleChar = index !== 0 && ['||', '&&'].includes(block[index - 1] + block[index])
+                children.push(block.substring(bottomPtr, isDoubleChar ? index - 1 : index));
+                bottomPtr = index;
+                children.push(block.substring(isDoubleChar ? bottomPtr - 1 : bottomPtr, index + 1));
+                bottomPtr = index + 1;
+            }
+            index += 1;
+        }
+        if (children.length > 2 && children[children.length - 1].length === 1) {
+            // we have a tail - i.e. there is an operator in the last position of the array and we need to add on the rest of the string
+            children.push(block.substring(bottomPtr, block.length));
+        }
+        return children;
     }
 }
 
@@ -165,26 +221,28 @@ export class Node {
     public falseChild!: Node;
     public wrappedChildren!: Node[];
     public tail = '';
+    public nose = '';
+    public nesting = false;
 
     constructor(public type: NodeType, public statement: string) {}
     
     addTrueChild(child: Node) {
         if (this.type !== NodeType.Logic) {
-            throw new Error('cannot add child to return node')
+            throw new Error('cannot add true child to non logic node')
         }
         this.trueChild = child;
     }
 
     addFalseChild(child: Node) {
         if (this.type !== NodeType.Logic) {
-            throw new Error('cannot add false child to return node or wrapper node')
+            throw new Error('cannot add false child to non logic node')
         }
         this.falseChild = child;
     }
 
     addWrappedChild(child: Node) {
-        if (this.type !== NodeType.Wrapper) {
-            throw new Error('cannot add false child to return node or wrapper node')
+        if (this.type === NodeType.Return) {
+            throw new Error('cannot add wrapped child to return node')
         }
         if (!this.wrappedChildren) this.wrappedChildren = [];
         this.wrappedChildren.push(child);
@@ -203,11 +261,15 @@ export class Node {
     public replaceFunctionsAndOperators(): void {
         if (!this) return;
         // replace all uses of this. with '', && with and, || with or, and ! with not when not followed by an equals sign
-        this.statement = this.statement
-            .replace(/this\./g, '')
+        const replace = (str: string) => str?.replace(/this\./g, '')
             .replace(/&&/g, ' and ')
             .replace(/\|\|/g, ' or ')
-            .replace(/!(?!==)/g, ' not ');
+            .replace(/!(?![=])/g, ' not ')
+            // we shouldn't have any instances of brackets, but... it's a failsafe
+            .replace('}', ')');
+        this.statement = replace(this.statement);
+        this.nose = replace(this.nose);
+        this.tail = replace(this.tail);
     }
 
     /**
@@ -216,11 +278,11 @@ export class Node {
     public replaceProperties(propertyMap: Record<string, Property>): void {
         if (!this) return;
         // replace .value
-        this.statement = this.statement.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}")`);
+        this.statement = this.statement?.replace(/this\.(\w+)\.value/g, (_, property) => `prop("${(propertyMap)[property]?.propertyName}")`);
         // replace object method calls - if the property is a DB property then replace it, otherwise it's a builtin function call so just use it
-        this.statement = this.statement.replace(/this\.(\w+)/g, (_, property) => (propertyMap)[property] ? `prop("${(propertyMap)[property]?.propertyName}")` : property);
+        this.statement = this.statement?.replace(/this\.(\w+)/g, (_, property) => (propertyMap)[property] ? `prop("${(propertyMap)[property]?.propertyName}")` : property);
         // remove all leftover .values
-        this.statement = this.statement.replace(/\.value/g, '');
+        this.statement = this.statement?.replace(/\.value/g, '');
 
         this.replaceFunctionsAndOperators();
         this.replaceCallbacks();
@@ -235,7 +297,7 @@ export class Node {
         const callbacks = getCallbackStatement(this.statement);
         callbacks.forEach((callback) => {
             const parsedCallback = parseCallbackStatement(callback);
-            this.statement = this.statement.replace(callback, parsedCallback);
+            this.statement = this.statement?.replace(callback, parsedCallback);
         });
     }
 }

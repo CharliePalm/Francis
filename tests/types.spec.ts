@@ -3,7 +3,6 @@ import * as Model from '../src/model';
 /*
  * This is a test of the compiler, not of logic. If this test compiler, it's good to go. 
  */
-
 xdescribe('typing', () => {
     describe('strings', () => {
         const x = new Model.Text('test');
@@ -77,7 +76,7 @@ xdescribe('typing', () => {
     });
 
     describe('lists', () => {
-        const x = new Model.NotionList('test');
+        const x = new Model.NotionList<number>('test');
         const y = new Model.MultiSelect('test2');
         const num = new Model.NotionNumber('test3');
         const str = new Model.NotionString('test4');

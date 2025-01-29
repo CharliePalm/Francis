@@ -13,24 +13,24 @@ export class Property {
     unequal(): boolean { return true; }
 }
 
-export class NotionList<T = any> extends Property {
+export class NotionList<T = NotionObject> extends Property {
     value!: T;
     // lists do not include a value because comparisons between arrays in general shouldn't be done. 
-    map(callback: (index: NotionNumberType | any, current: T | any) => NotionType): NotionList { return this; }
-    filter(callback: (current: T | any) => boolean): NotionList { return this; }
-    find(callback: (current: T | any) => boolean): NotionList { return this; }
-    findIndex(callback: (current: T | any) => boolean): NotionNumberType { return 0; }
-    some(callback: (current: T | any) => boolean): boolean { return true; }
-    every(callback: (current: T | any) => boolean): boolean { return true; }
-    at(index: NotionNumberType): T { return this.value; }
-    slice(start: NotionNumberType, end?: NotionNumberType): NotionList { return this; }
-    concat(...values: NotionList[]): NotionList { return this; }
-    reverse(): NotionList { return this; }
-    sort(): NotionList { return this; }
+    map(callback: (index: NotionNumberType | any, current: T | any) => NotionType): NotionList<any> { return this; }
+    filter(callback: (current: T) => boolean): NotionList<T> { return this; }
+    find(callback: (current: T) => boolean): T { return this.value; }
+    findIndex(callback: (current: T) => boolean): NotionNumberType { return 0; }
+    some(callback: (current: T) => boolean): boolean { return true; }
+    every(callback: (current: T) => boolean): boolean { return true; }
+    at(index: NotionNumberType): T { return {} as T; }
+    slice(start: NotionNumberType, end?: NotionNumberType): NotionList<T> { return this; }
+    concat(...values: NotionList<T>[]): NotionList<T> { return this; }
+    reverse(): NotionList<T> { return this; }
+    sort(): NotionList<T> { return this; }
     join(intermediary: NotionStringType): string { return ''; }
-    unique(): NotionList { return this; }
+    unique(): NotionList<T> { return this; }
     includes(value: NotionType): boolean { return true; }
-    flat(): NotionList { return this; }
+    flat(): NotionList<T> { return this; }
     length(): NotionNumber { return {} as NotionNumber; }
 }
 
@@ -78,6 +78,14 @@ export class NotionNumber extends Property {
     fromTimestamp(): Date {return new Date(); }
 }
 
+export class NotionObject extends Property {
+    /**
+     * A function to get a value from an object.
+     * Transformed by the compiler to be prop("{{propertyName}}")
+     * */ 
+    _valueAccessor<T>(propertyName: string): T { return {} as T };
+}
+
 export class NotionDate extends Property {
     dateSubtract(num: NotionNumberType, unit: NotionDateType): NotionDate { return this; }
     dateAdd(num: NotionNumberType, unit: NotionDateType): NotionDate { return this; }
@@ -122,11 +130,11 @@ export class Email extends Text {}
 
 export class Phone extends Text {}
 
-export class Relation extends Formula {}
+export class Relation<T = NotionObject> extends NotionList<T> {}
 
 export class MultiSelect<T = any> extends NotionList<T> {}
 
-export class Rollup<T = any> extends  NotionList<T> {}
+export class Rollup<T = NotionObject> extends NotionList<T> {}
 
 export class CreatedTime extends Date {}
 
@@ -172,7 +180,8 @@ export enum PropertyType {
 }
 
 export enum NodeType {
-    Logic,
-    Return,
-    Wrapper,
+    Logic = 'Logic',
+    Return = 'Return',
+    Wrapper = 'Wrapper',
+    Combination = 'Combination',
 }

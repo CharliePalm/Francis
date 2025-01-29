@@ -1,5 +1,5 @@
-import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
-import * as Model from './src/model';
+import { NotionFormulaGenerator } from '../src/NotionFormulaGenerator';
+import * as Model from '../src/model';
 class MyFirstFormula extends NotionFormulaGenerator {
     // define DB properties here:
     public myProperty = new Model.Checkbox('myProperty name');

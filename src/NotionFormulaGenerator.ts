@@ -21,14 +21,14 @@ export abstract class NotionFormulaGenerator {
      */
     public compile(): string {
         const functionMap = this.buildFunctionMap();
+        functionMap.forEach((v, k) => functionMap.set(k, v.replace(/\/\/.*$/gm, '')));
         // update function map to check if other functions reference each other
         this.updateFunctionMap(functionMap);
-        functionMap.keys()
         const constMap = new Map<string, string>();
         // begin replacements
         const formulaBody = this.formula.toString()
-            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => functionMap.get(functionName) ?? match) // replace function calls
             .replace(/\/\/.*$/gm, '') // Remove all comments
+            .replace(new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'), (match, functionName) => functionMap.get(functionName) ? '(' + functionMap.get(functionName) + ')' : match) // replace function calls
             // remove constant definitions and populate the constant map
             .replace(/const\s+(\w+)\s*=\s*([^;]+);?/g, (_: string, var1: string, var2: string) => {
                 constMap.set(var1, var2);
@@ -37,15 +37,18 @@ export abstract class NotionFormulaGenerator {
             // replace all constants with their values
             .replace(
                 new RegExp(`(?<=[\\s{(*+-/])(${[...constMap.keys()].join('|')})(?=[\\s})+\\-/*;]|$)`, 'g'), 
-                (match, constName) => 
+                (match, constName) =>
                     constMap.get(constName) ?? match
                 )
+            .replace(/\._valueAccessor(?:<[\w.]+>)?\(['"]([^'"]+)['"]\)/g, '.prop("$1")') // replace _valueAccessor calls
             .replace(/['`]/g, '"') // replace ' strings with "
             .replace(/(?<!\d)(\.)(?=\d)/g, '0$1') // add 0 in front of decimals that are between 0 and 1 (new update to formula API)
             .replace(/if\s*\([^{}]*\)\s*{\s*}\s*(else\s+if\s*\([^{}]*\)\s*{\s*}\s*)*/g, '') // remove empty ifs
             .replace(/"[^"]*"|(\s+)/g, (match, group1) => group1 ? '' : match) // Remove all whitespace not in single quotes
             .replace(/return/g, '') // Remove the return keyword
             .replace(/;/g, '') // Remove semicolons
+            .replace(/!==/g, '!=') // remove big equals/unequals
+            .replace(/===/g, '==')
             .slice(10, -1); // Remove formula() {} brackets
         // create tree
         this.tree = new Tree(formulaBody);
@@ -62,9 +65,17 @@ export abstract class NotionFormulaGenerator {
      * @returns the completed formula for the step
      */
     public build(node: Node, currentFormula: string): string {
-        switch (node.type) {
+        switch (node?.type) {
             case NodeType.Logic:
-                currentFormula += 'if(' + node.statement + ','
+                currentFormula += node.nose + 'if('
+                if (!node.wrappedChildren?.length) {
+                    currentFormula += node.statement + ','
+                } else {
+                    node.wrappedChildren.forEach((child) => {
+                        currentFormula = this.build(child, currentFormula);
+                    });
+                    currentFormula += node.statement + ','
+                }
                 currentFormula = this.build(node.trueChild, currentFormula) + ',';
                 currentFormula = this.build(node.falseChild, currentFormula);
                 currentFormula += ')' + node.tail;
@@ -83,6 +94,11 @@ export abstract class NotionFormulaGenerator {
                 });
                 currentFormula += node.tail;
                 break;
+            case NodeType.Combination:
+                currentFormula += node.nose;
+                node.wrappedChildren.forEach((child) => {
+                    currentFormula = this.build(child, currentFormula);
+                });
         }
         return currentFormula;
     }
@@ -182,8 +198,8 @@ export abstract class NotionFormulaGenerator {
     substring(value: string, start: number, end?: number): string { return ''; }
     length(value: string | NotionList): number { return 0; }
     format(value: number | string | boolean | NotionDate): string { return ''; }
-    toNumber(value: number | string | boolean | NotionDate): number { return 0; }
-    contains(value: string | NotionList | any[], toSearchFor: string): boolean { return true; }
+    toNumber(value: number | string | boolean | NotionDate | NotionType): number { return 0; }
+    contains(value: string | NotionList<any> | any[], toSearchFor: string): boolean { return true; }
     replace(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
     replaceAll(value: number | string | boolean, toFind: string, toReplace: string): string { return ''; }
     test(value: number | string | boolean, toMatch: string): boolean { return true; }

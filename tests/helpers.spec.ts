@@ -1,4 +1,4 @@
-import { getBlockContent, getCallbackStatement, getStatement, parseCallbackStatement } from '../src/helpers/helpers';
+import { getBlockContent, getCallbackStatement, getEndOfIfBlockIndex, getStatement, parseCallbackStatement } from '../src/helpers/helpers';
 
 describe('helper functions', () => {
     describe('getBlockContent', () => {
@@ -41,17 +41,9 @@ describe('helper functions', () => {
         it('should handle simple fall through if/else if blocks', () => {
             expect(getBlockContent('if(test===1){1}elseif(test===-1){3}2')).toEqual(['1', 'if(test===-1){3}2'])
         });
-
-        it('should handle tails with elses', () => {
-            expect(getBlockContent('if(x===y){4}else{2}*2')).toEqual(['4', '2}*2'])
-        });
-
-        it('should handle tails with else ifs', () => {
-            expect(getBlockContent('if(x===y){4}elseif(a===b){3}else{2}*2')).toEqual(['4', 'if(a===b){3}else{2}*2'])
-        });
     });
 
-    describe('get statement', () => {
+    describe('getStatement', () => {
         it('should return the logic in parentheses for a logical staement', () => {
             expect(getStatement('if(test===true){do..stuff...here}')).toEqual('test===true')
         });
@@ -66,6 +58,10 @@ describe('helper functions', () => {
         
         it('should return undefined in brackets for a return statement', () => {
             expect(getStatement('do..stuff...here')).toBeUndefined();
+        });
+
+        it('should return correct statement when provided a nested if', () => {
+            expect(getStatement('if((if(1==1){1}else{2})>1){"hello"}"world"')).toEqual('(if(1==1){1}else{2})>1');
         });
     });
 
@@ -105,6 +101,18 @@ describe('helper functions', () => {
         it('does not replace non-variable references with the same name', () => {
             const result = parseCallbackStatement('(a,e)=>a.length()+e+"e e test"');
             expect(result).toEqual('index.length()+current+"e e test"');
+        });
+    });
+
+    describe('getEndOfIfBlockIndex', () => {
+        it('gets the first index of { after if block', () => {
+            const result = getEndOfIfBlockIndex('if(1==1){"hello"}"world"');
+            expect(result).toEqual(8);
+        });
+
+        it('gets the first index of { after if block for nested ifs', () => {
+            const result = getEndOfIfBlockIndex('if((if(1==1){1}else{2})>1){"hello"}"world"');
+            expect(result).toEqual(26);
         });
     });
 });

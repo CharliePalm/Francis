@@ -13,11 +13,11 @@ describe('buildTree', () => {
     });
 
     it('should throw error when an else block is missing', () => {
-        const formula = 'if(x-y){if(a+b===0){dostuff}elseif(x-y===1){dostuff}}else{elsedostuff}';
+        const formula = 'if(x-y){if(a+b==0){dostuff}elseif(x-y===1){dostuff}}else{elsedostuff}';
         try {
             new Tree(formula);
         } catch (e: any) {
-            expect(e.message).toEqual('error processing input: unexpected blank false block')
+            expect(e.message).toEqual('error processing input: unexpected blank false block from true block: dostuff')
         }
     });
 
@@ -66,5 +66,23 @@ describe('buildTree', () => {
         expect(fc?.trueChild?.type).toEqual(NodeType.Return);
         expect(fc?.falseChild?.statement).toEqual('b-a');
         expect(fc?.falseChild?.type).toEqual(NodeType.Return);
+    });
+
+    describe('getCombinationNodeChildren', () => {
+        it('should correctly get combination node children', () => {
+            const statement = 'if(a>b){1}else{2}+if(b==a){3}else{4}';
+            const tree = new Tree();
+            expect(tree['getCombinationNodeChildren'](statement)).toEqual(['if(a>b){1}else{2}', '+', 'if(b==a){3}else{4}']);
+        });
+        it('should correctly get combination node children for multiple children', () => {
+            const statement = 'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}';
+            const tree = new Tree();
+            expect(tree['getCombinationNodeChildren'](statement)).toEqual(['if(a>b){1}else{2}', '+', 'if(b==a){3}else{4}', '-', 'if(x-y>b){4}else{5}']);
+        });
+        it('should handle one character children at the end of the statement', () => {
+            const statement = 'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}+4';
+            const tree = new Tree();
+            expect(tree['getCombinationNodeChildren'](statement)).toEqual(['if(a>b){1}else{2}', '+', 'if(b==a){3}else{4}', '-', 'if(x-y>b){4}else{5}', '+', '4']);
+        });
     });
 });
