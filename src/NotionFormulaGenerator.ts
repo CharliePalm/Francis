@@ -11,10 +11,6 @@ export abstract class NotionFormulaGenerator {
      */
     abstract formula(): any;
 
-    public buildFunctionMap(): Map<string, string> {
-        return new Map<string, string>();
-    }
-
     /**
      * compiles the subclass' formula function
      * @returns the compiled formula
@@ -58,13 +54,17 @@ export abstract class NotionFormulaGenerator {
         return endResult;
     }
 
+    public buildFunctionMap(): Map<string, string> {
+        return new Map<string, string>();
+    }
+
     /**
      * recursive method to build the formula from the tree
      * @param node - the current node
      * @param currentFormula - the current formula
      * @returns the completed formula for the step
      */
-    public build(node: Node, currentFormula: string): string {
+    private build(node: Node, currentFormula: string): string {
         switch (node?.type) {
             case NodeType.Logic:
                 currentFormula += node.nose + 'if('
@@ -117,7 +117,7 @@ export abstract class NotionFormulaGenerator {
      * replaces non-cyclic references to other functions in the function map with the function's code
      * @param input 
      */
-    public updateFunctionMap(input: Map<string, string>) {
+    private updateFunctionMap(input: Map<string, string>) {
         // clean functions of functionName() and brackets
         const r = new RegExp(`this\\.(${[...input.keys()].join('|')})\\(\\)`, 'g');
         // baseFunctions represents functions that have no other function calls
