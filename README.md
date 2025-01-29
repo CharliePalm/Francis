@@ -172,7 +172,7 @@ Submit a pull request (with unit test coverage please) and I'll happily review i
 
 There's a bug that causes Francis to short circuit when there are multiple extremely complicated helper function calls in if statements. I've been able to get around it, but please submit a bug report if you're able to replicate.
 
-There's an issue with Notion 
+There's an issue with Notion that arises when pasting extremely complicated formulas in from Francis where prop("property name") fields aren't read correctly. I've gotten around this by just typing a space after pasting.
 
 ## Reporting Bugs
 
