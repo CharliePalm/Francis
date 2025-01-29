@@ -1,5 +1,5 @@
 # Francis (Notion Formula Generator)
-[![npm](https://img.shields.io/badge/npm-v2.0.2-blue)](https://www.npmjs.com/package/notion-formula-generator)
+[![npm](https://img.shields.io/badge/npm-v2.0.4-blue)](https://www.npmjs.com/package/notion-formula-generator)
 [![License](https://img.shields.io/badge/license-MIT-purple)](https://opensource.org/licenses/MIT)
 [![Author](https://img.shields.io/badge/author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
 
@@ -16,7 +16,7 @@ It does so through these steps:
 1. Build the function map of any helper methods
 2. Clean the text of the formula function: remove the return keyword, comments, whitespace, semicolons, etc. and replace typescript syntax with notion syntax (&& becomes and, etc.)
 3. Replace all constants with their values
-4. Build a binary tree of logic
+4. Build a (mostly) binary tree of logic
 5. Replace all DB property references with the property's name
 6. Replace all function calls with their code
 7. Iterate over the tree's nodes from left to right (true to false) to build the tree
@@ -65,7 +65,7 @@ Then create a MyFirstFormula.ts file that looks something like this:
     console.log(formula.compile());
 Then just add your formula and parameters and you can run
 
-    ts-node MyFirstFormula.ts
+    npx ts-node formulas/MyFirstFormula.ts
 Easy peasy!
 
 ### with the whole repo (Recommended):
@@ -76,7 +76,7 @@ Because the process for generating formulas is somewhat confusing, it's helpful 
     npm i
 Open the provided myFirstFormula file, and run
 
-    ts-node myFirstFormula.ts
+    npx ts-node myFirstFormula.ts
 you should see the result:
 
     if(prop("myProperty name"),1,0)
@@ -92,7 +92,7 @@ test2 is the name of the database property, not test.
 
 Requirements for creating your formula() function:
 
-1. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability, but all must be defined with the const keyword
+1. Using let is prohibited. You are allowed to define NOTION FRIENDLY constants (such as strings and numbers) to improve readability, but all must be defined with the const keyword. Furthermore, constants must be defined STATICALLY, i.e. they cannot be the result of a helper function call.
 2. Trailing commas are not allowed
 3. Empty if blocks are not allowed
 4. Loops are not allowed
@@ -131,9 +131,20 @@ Which will lead to the same result, just with ternaries instead of the notion if
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
-## New in v2.0.3
-Francis now has a 'codify' function - a utility to convert a notion formula into a NotionFormulaGenerator object.
-This is currently a beta feature and has only been tested on small formulas.
+## New in v2.0.4
+A ton of bugs have been fixed and functionality added, including:
+
+1. Francis now supports calling helper functions in logic statements, i.e. if (myFunction() == 1)
+2. Francis can handle when multiple helper functions are separated by operators, i.e. myFunction() + myFunction()
+3. Added a NotionObject type with a _valueAccessor method that can be typed generically to access relation properties
+
+More on the above: if you have a relation and are trying to access a property from a row in your relation, you can do so as such:
+
+    this.myRelation.find((r) => r.value == 'test')._valueAccessor('MyPropertyName').value
+which translates to:
+
+    prop("myRelation").find(current.value == 'test').prop("myPropertyName")
+Furthermore relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
 
 ## FAQ
 
@@ -159,7 +170,9 @@ Submit a pull request (with unit test coverage please) and I'll happily review i
 
 ## Known Bugs
 
-As of 9/6/2024 there are no known bugs and 100% unit test coverage.
+There's a bug that causes Francis to short circuit when there are multiple extremely complicated helper function calls in if statements. I've been able to get around it, but please submit a bug report if you're able to replicate.
+
+There's an issue with Notion 
 
 ## Reporting Bugs
 
