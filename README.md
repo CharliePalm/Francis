@@ -144,7 +144,7 @@ More on the above: if you have a relation and are trying to access a property fr
 which translates to:
 
     prop("myRelation").find(current.value == 'test').prop("myPropertyName")
-Furthermore relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
+Furthermore, relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
 
 ## FAQ
 
