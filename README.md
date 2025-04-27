@@ -98,6 +98,7 @@ Requirements for creating your formula() function:
 4. Loops are not allowed
 5. Function parameters are not allowed
 6. Global variables are not allowed
+7. Switch statements are not allowed
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
