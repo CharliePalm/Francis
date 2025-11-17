@@ -1,4 +1,5 @@
 # Francis (Notion Formula Generator)
+
 [![npm](https://img.shields.io/badge/npm-v2.0.4-blue)](https://www.npmjs.com/package/notion-formula-generator)
 [![License](https://img.shields.io/badge/license-MIT-purple)](https://opensource.org/licenses/MIT)
 [![Author](https://img.shields.io/badge/author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
@@ -23,17 +24,44 @@ It does so through these steps:
 8. Return the completed formula
 
 ## Usage
+
 This guide assumes basic programming proficiency. You don't really need to be a typescript expert but you should be familiar with the concepts of basic logic and polymorphism
 
 ### With npm
+
 Generate a new typescript project:
 
+```sh
     cd path/to/project
-    npm init
+    npm init -y
+    npm install --save-dev typescript ts-node @types/node
+    npx tsc --init
     npm i notion-formula-generator
+```
+
+Then paste the following into your tsconfig.json
+
+```json
+    {
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "verbatimModuleSyntax": false
+    },
+    "ts-node": {
+        "esm": true
+    }
+    }
+```
 
 Then create a MyFirstFormula.ts file that looks something like this:
 
+```typescript
     import { NotionFormulaGenerator, Model } from 'notion-formula-generator'
     class MyFirstFormula extends NotionFormulaGenerator {
         // define DB properties here:
@@ -63,31 +91,50 @@ Then create a MyFirstFormula.ts file that looks something like this:
     const formula = new MyFirstFormula();
     console.log('result: ');
     console.log(formula.compile());
+```
+
 Then just add your formula and parameters and you can run
 
+```sh
     npx ts-node formulas/MyFirstFormula.ts
+```
+
 Easy peasy!
 
-### with the whole repo (Recommended):
+### with the whole repo (Recommended)
+
 Because the process for generating formulas is somewhat confusing, it's helpful to have the whole repo at your disposale to view the examples.
 
+```sh
     git clone https://github.com/CharliePalm/Francis
     cd Francis
     npm i
+```
+
 Open the provided myFirstFormula file, and run
 
+```sh
     npx ts-node myFirstFormula.ts
+```
+
 you should see the result:
 
+```txt
     if(prop("myProperty name"),1,0)
+```
+
 Now that you've confirmed that everything is running smoothly, you can start creating your own formula. You can check out the example file at example.ts for a complicated formula example that uses all the functionality of the compiler, or just fill in the MyFirstFormula.ts file with all the functionality you need.
 
 ### General Guidelines
+
 DB properties should be defined as they are in the example. It doesn't matter what you name the variable, but the string you pass in to the constructor MUST be the name of the property. That is to say, in the following example code:
 
+```typescript
     class Formula extends NotionFormulaGenerator {
         public test = new Model.Number('test2')
     }
+```
+
 test2 is the name of the database property, not test.
 
 Requirements for creating your formula() function:
@@ -109,6 +156,7 @@ You are allowed to reference other functions within helper functions, but cannot
 If you want to wrap logic in a function call (i.e. rounding the result of a calculation), just execute the logic in a helper function and call it within the function you want to use as the wrapper.
 For example:
 
+```typescript
     formula() {
         this.round(this.doSomething() * 100) / 100
     }
@@ -120,19 +168,28 @@ For example:
             return 9 / 4;
         }
     }
+```
+
 Which effectively translates to:
 
+```txt
     round(if(1==1, 7/2, 9/4) * 100) / 100
+```
+
 Alternatively, you can use ternary operators to the same effect:
 
+```typescript
     formula() {
         this.round((1 == 1 ? 7/2 : 9/4) * 100) / 100
     }
+```
+
 Which will lead to the same result, just with ternaries instead of the notion if() function.
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
 ## New in v2.0.4
+
 A ton of bugs have been fixed and functionality added, including:
 
 1. Francis now supports calling helper functions in logic statements, i.e. if (myFunction() == 1)
@@ -141,10 +198,16 @@ A ton of bugs have been fixed and functionality added, including:
 
 More on the above: if you have a relation and are trying to access a property from a row in your relation, you can do so as such:
 
+```txt
     this.myRelation.find((r) => r.value == 'test')._valueAccessor('MyPropertyName').value
+```
+
 which translates to:
 
+```txt
     prop("myRelation").find(current.value == 'test').prop("myPropertyName")
+```
+
 Furthermore, relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
 
 ## FAQ
@@ -186,4 +249,5 @@ contains a value field that has its primitive type (if applicable) for primitive
 This brings into question how type safety will be properly enforced and how primitive operations can be carried out, which I don't have a solution for right now, but would like to work more on.
 
 ## License
+
 [MIT License](https://opensource.org/licenses/MIT)
