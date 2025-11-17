@@ -32,17 +32,17 @@ This guide assumes basic programming proficiency. You don't really need to be a 
 Generate a new typescript project:
 
 ```sh
-    cd path/to/project
-    npm init -y
-    npm install --save-dev typescript ts-node @types/node
-    npx tsc --init
-    npm i notion-formula-generator
+cd path/to/project
+npm init -y
+npm install --save-dev typescript ts-node @types/node
+npx tsc --init
+npm i notion-formula-generator
 ```
 
 Then paste the following into your tsconfig.json
 
 ```json
-    {
+{
     "compilerOptions": {
         "target": "ES2020",
         "module": "CommonJS",
@@ -56,41 +56,41 @@ Then paste the following into your tsconfig.json
     "ts-node": {
         "esm": true
     }
-    }
+}
 ```
 
 Then create a MyFirstFormula.ts file that looks something like this:
 
 ```typescript
-    import { NotionFormulaGenerator, Model } from 'notion-formula-generator'
-    class MyFirstFormula extends NotionFormulaGenerator {
-        // define DB properties here:
-        public myProperty = new Model.Checkbox('myProperty name');
+import { NotionFormulaGenerator, Model } from 'notion-formula-generator'
+class MyFirstFormula extends NotionFormulaGenerator {
+    // define DB properties here:
+    public myProperty = new Model.Checkbox('myProperty name');
 
-        // fill in your formula function here:
-        formula() {
-            if (this.myProperty) {
-                return 1;
-            }
-            return 0;
+    // fill in your formula function here:
+    formula() {
+        if (this.myProperty) {
+            return 1;
         }
-        
-        // any frequently re-used logic can be compartmentalized into functions
-        nameOfFunction() {
-            return 0;
-        }
-
-        // If you want to use helper functions, define them here like this
-        public buildFunctionMap(): Map<string, string> {
-            return new Map([
-                ['nameOfFunction', this.nameOfFunction.toString()],
-            ]);
-        }
+        return 0;
+    }
+    
+    // any frequently re-used logic can be compartmentalized into functions
+    nameOfFunction() {
+        return 0;
     }
 
-    const formula = new MyFirstFormula();
-    console.log('result: ');
-    console.log(formula.compile());
+    // If you want to use helper functions, define them here like this
+    public buildFunctionMap(): Map<string, string> {
+        return new Map([
+            ['nameOfFunction', this.nameOfFunction.toString()],
+        ]);
+    }
+}
+
+const formula = new MyFirstFormula();
+console.log('result: ');
+console.log(formula.compile());
 ```
 
 Then just add your formula and parameters and you can run
@@ -106,21 +106,21 @@ Easy peasy!
 Because the process for generating formulas is somewhat confusing, it's helpful to have the whole repo at your disposale to view the examples.
 
 ```sh
-    git clone https://github.com/CharliePalm/Francis
-    cd Francis
-    npm i
+git clone https://github.com/CharliePalm/Francis
+cd Francis
+npm i
 ```
 
 Open the provided myFirstFormula file, and run
 
 ```sh
-    npx ts-node myFirstFormula.ts
+npx ts-node myFirstFormula.ts
 ```
 
 you should see the result:
 
 ```txt
-    if(prop("myProperty name"),1,0)
+if(prop("myProperty name"),1,0)
 ```
 
 Now that you've confirmed that everything is running smoothly, you can start creating your own formula. You can check out the example file at example.ts for a complicated formula example that uses all the functionality of the compiler, or just fill in the MyFirstFormula.ts file with all the functionality you need.
@@ -130,9 +130,9 @@ Now that you've confirmed that everything is running smoothly, you can start cre
 DB properties should be defined as they are in the example. It doesn't matter what you name the variable, but the string you pass in to the constructor MUST be the name of the property. That is to say, in the following example code:
 
 ```typescript
-    class Formula extends NotionFormulaGenerator {
-        public test = new Model.Number('test2')
-    }
+class Formula extends NotionFormulaGenerator {
+    public test = new Model.Number('test2')
+}
 ```
 
 test2 is the name of the database property, not test.
@@ -157,31 +157,31 @@ If you want to wrap logic in a function call (i.e. rounding the result of a calc
 For example:
 
 ```typescript
-    formula() {
-        this.round(this.doSomething() * 100) / 100
-    }
+formula() {
+    this.round(this.doSomething() * 100) / 100
+}
 
-    doSomething() {
-        if (1 == 1) {
-            return 7 / 2;
-        } else {
-            return 9 / 4;
-        }
+doSomething() {
+    if (1 == 1) {
+        return 7 / 2;
+    } else {
+        return 9 / 4;
     }
+}
 ```
 
 Which effectively translates to:
 
 ```txt
-    round(if(1==1, 7/2, 9/4) * 100) / 100
+round(if(1==1, 7/2, 9/4) * 100) / 100
 ```
 
 Alternatively, you can use ternary operators to the same effect:
 
 ```typescript
-    formula() {
-        this.round((1 == 1 ? 7/2 : 9/4) * 100) / 100
-    }
+formula() {
+    this.round((1 == 1 ? 7/2 : 9/4) * 100) / 100
+}
 ```
 
 Which will lead to the same result, just with ternaries instead of the notion if() function.
@@ -199,13 +199,13 @@ A ton of bugs have been fixed and functionality added, including:
 More on the above: if you have a relation and are trying to access a property from a row in your relation, you can do so as such:
 
 ```txt
-    this.myRelation.find((r) => r.value == 'test')._valueAccessor('MyPropertyName').value
+this.myRelation.find((r) => r.value == 'test')._valueAccessor('MyPropertyName').value
 ```
 
 which translates to:
 
 ```txt
-    prop("myRelation").find(current.value == 'test').prop("myPropertyName")
+prop("myRelation").find(current.value == 'test').prop("myPropertyName")
 ```
 
 Furthermore, relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
