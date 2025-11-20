@@ -18,7 +18,6 @@ export class Tree {
     type: NodeType,
     isTrueChild?: boolean
   ) {
-    console.log(`adding node with statement: "${statement}"`);
     // if (statement === undefined || statement === null) {
     //     throw new Error('attempted to add blank statement to tree with parent statement: ' + parent?.statement);
     // }
@@ -32,12 +31,8 @@ export class Tree {
     ) {
       parent.addWrappedChild(node);
     } else {
-      if (isTrueChild === undefined) {
-        throw new Error(
-          'attempted to add node with parent without isTrueChild undefined'
-        );
-      }
       if (isTrueChild) parent.addTrueChild(node);
+      else if (isTrueChild === undefined) parent.addLogicChild(node);
       else parent.addFalseChild(node);
     }
     this.size += 1;
@@ -49,7 +44,6 @@ export class Tree {
     parent?: Node,
     side?: boolean
   ): void {
-    console.log('handling wrapper function for statement:', statement);
     let [bottomPtr, topPtr, depth] = [0, 0, 0];
     let parsedStatement = '';
     const children: string[] = [];
@@ -91,7 +85,6 @@ export class Tree {
     parent?: Node,
     side?: boolean
   ): void {
-    console.log('handling wrapper function for statement:', combinations);
     const node = this.add('', parent, NodeType.Combination, side);
     combinations.forEach((childStatement) => this.dfp(childStatement, node));
   }
@@ -102,7 +95,6 @@ export class Tree {
    * @param block
    */
   dfp(block: string, parent?: Node, side?: boolean) {
-    console.log('processing block:', block);
     const statement = getStatement(block);
     // no statement implies that getBlockContent returned our statement for us
     if (!statement) {

@@ -105,12 +105,12 @@ export abstract class NotionFormulaGenerator {
       case NodeType.Logic:
         currentFormula += node.nose + 'if(';
         if (!node.wrappedChildren?.length) {
-          currentFormula += node.statement + ',';
+          currentFormula += node.rawStatement + ',';
         } else {
           node.wrappedChildren.forEach((child) => {
             currentFormula = this.build(child, currentFormula);
           });
-          currentFormula += node.statement + ',';
+          currentFormula += node.rawStatement + ',';
         }
         currentFormula = this.build(node.trueChild, currentFormula) + ',';
         currentFormula = this.build(node.falseChild, currentFormula);
@@ -121,14 +121,14 @@ export abstract class NotionFormulaGenerator {
         break;
       case NodeType.Wrapper:
         node.wrappedChildren.forEach((child) => {
-          const idx = node.statement.indexOf('()') + 1;
-          const statement = node.statement.substring(0, idx);
+          const idx = node.rawStatement.indexOf('()') + 1;
+          const statement = node.rawStatement.substring(0, idx);
           currentFormula += statement;
           currentFormula = this.build(child, currentFormula);
           currentFormula += ')';
-          node.statement = node.statement.substring(
+          node.rawStatement = node.rawStatement.substring(
             idx + 1,
-            node.statement.length
+            node.rawStatement.length
           );
         });
         currentFormula += node.tail;

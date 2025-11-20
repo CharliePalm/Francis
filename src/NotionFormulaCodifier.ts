@@ -37,7 +37,11 @@ export class NotionFormulaCodifier {
           )}
 
           formula() {
-            ${formula}
+            ${
+              (formula.startsWith('return') || formula.startsWith('if')
+                ? ''
+                : 'return ') + formula
+            }
           }
 
           ${wrappers.reduce(
@@ -54,59 +58,53 @@ export class NotionFormulaCodifier {
           }
       }`);
 
-  build(node: Node, wrappers: [string, string][], currentFormula = ''): string {
-    console.log(node);
+  wrapLogic(node: Node, wrappers: [string, string][], currentFormula: string) {
     const innerWrappers: [string, string][] = [];
+    let innerFormula = '';
+    if (node.type === NodeType.Wrapper) {
+      node.wrappedChildren.forEach((child) => {
+        innerFormula += this.build(child, innerWrappers, innerFormula);
+      });
+    } else {
+      innerFormula += this.build(node, innerWrappers, innerFormula);
+    }
+
+    wrappers.push([
+      'func' + (wrappers.length + innerWrappers.length + 1),
+      innerFormula.startsWith('if') ? innerFormula : 'return ' + innerFormula,
+    ]);
+    innerWrappers.forEach((iw) => wrappers.push(iw));
+
+    currentFormula += `${
+      currentFormula.endsWith('{') ? 'return ' : ''
+    } ${node.statement.slice(0, -1)}this.func${wrappers.length}()${
+      node.tail +
+      new Array(node.statement.split('(').length - 1).fill(')').join('')
+    }`;
+    return currentFormula;
+  }
+
+  build(node: Node, wrappers: [string, string][], currentFormula = ''): string {
     switch (node?.type) {
       case NodeType.Logic:
-        if (node.wrappedChildren?.length) {
-          let innerFormula = '';
-          node.wrappedChildren.forEach((child) => {
-            if (child.type === NodeType.Simple) {
-              node.statement += child.statement;
-            } else {
-              innerFormula = this.build(child, innerWrappers, currentFormula);
-              wrappers.push([
-                'func' + (wrappers.length + innerWrappers.length + 1),
-                innerFormula,
-              ]);
-              innerWrappers.forEach((iw) => wrappers.push(iw));
-              node.statement += `this.func${wrappers.length}()`;
-            }
-          });
-        }
-        currentFormula += 'if (' + node.statement + ') {';
+        let logicStatement =
+          node.logicChild.type === NodeType.Logic
+            ? this.wrapLogic(node.logicChild, wrappers, currentFormula)
+            : this.build(node.logicChild, wrappers, currentFormula);
+        currentFormula = 'if (' + logicStatement + ') { return ';
         currentFormula =
-          this.build(node.trueChild, wrappers, currentFormula) + '} else {';
+          this.build(node.trueChild, wrappers, currentFormula) +
+          '} else { return ';
         currentFormula = this.build(node.falseChild, wrappers, currentFormula);
         currentFormula += '}';
         break;
       case NodeType.Return:
-        currentFormula += 'return ' + node.statement + ';';
-        break;
-      case NodeType.Simple:
         currentFormula += node.statement;
         break;
       case NodeType.Wrapper:
-        let innerFormula = '';
-        node.wrappedChildren.forEach((child) => {
-          innerFormula += this.build(child, innerWrappers, innerFormula);
-        });
-        wrappers.push([
-          'func' + (wrappers.length + innerWrappers.length + 1),
-          innerFormula,
-        ]);
-        innerWrappers.forEach((iw) => wrappers.push(iw));
-
-        currentFormula += `return ${node.statement.slice(0, -1)}this.func${
-          wrappers.length
-        }()${
-          node.tail +
-          new Array(node.statement.split('(').length - 1).fill(')').join('')
-        };`;
+        currentFormula = this.wrapLogic(node, wrappers, currentFormula);
         break;
       case NodeType.Combination:
-        // todo, this doesn't work i don't think
         currentFormula += node.nose;
         node.wrappedChildren.forEach((child) => {
           currentFormula = this.build(child, wrappers, currentFormula);
@@ -218,16 +216,11 @@ export class NotionFormulaCodifier {
     if (this.formula.charAt(0) === '(') {
       this.formula = this.formula.substring(1, this.formula.length - 1);
     }
-    console.log(this.formula);
     const tree = new ReverseTree(this.formula);
-    console.log(tree.root);
     // replace references to database properties
     const wrappers: [string, string][] = [];
     this.formula = this.build(tree.root, wrappers);
-    console.log(this.formula);
-    console.log(wrappers);
     const result = await this.getFormula(this.formula, propertyVals, wrappers);
-    console.log(result);
     return result;
   }
 }

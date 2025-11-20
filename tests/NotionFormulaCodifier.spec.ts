@@ -87,13 +87,7 @@ describe('NotionFormulaCodifier', () => {
             checkbox: {},
           },
         }).decompile()
-      ).toEqual(
-        await getBasic(`if (this.myProperty) {
-                return 1;
-            } else {
-                return 0;
-            }`)
-      );
+      ).toEqual(await getBasic(`if(this.myProperty){return 1}else{return 0}`));
     });
 
     describe('wrappers', () => {

@@ -365,5 +365,4 @@ export enum NodeType {
   Return = 'Return', // code -> formula: statement, formula -> code: return statement;
   Wrapper = 'Wrapper', // a + fn() + b
   Combination = 'Combination', // a + if(x, y, z) + b
-  Simple = 'Simple', // statement - only used for codify
 }
