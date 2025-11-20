@@ -1,5 +1,5 @@
 import { NotionFormulaGenerator } from "../src/NotionFormulaGenerator";
-import { Node } from '../src/helpers/tree';
+import { Node } from "../src/helpers/node";
 import * as Model from "../src/model";
 
 describe('notionFormulaGenerator', () => {
