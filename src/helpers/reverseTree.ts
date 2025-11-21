@@ -2,6 +2,7 @@ import { Tree } from './tree';
 import { Node } from './node';
 import { NodeType } from '../model';
 import { parseCallbackStatement } from './helpers';
+import { Logger } from './logger';
 
 /**
  * reverse in this context means Notion -> Typescript, not reversing logic.
@@ -43,11 +44,12 @@ export class ReverseTree extends Tree {
           subStatement = '';
         }
         const innerWrapperParent = this.add('', parent, NodeType.Wrapper);
-        this.dfp(childStatement.trim(), innerWrapperParent);
+        this.dfp(childStatement, innerWrapperParent);
       } else {
         subStatement += childStatement;
       }
     });
+    Logger.debug('finished iterating - substatement: ', subStatement);
     if (subStatement.length) {
       this.add(subStatement, parent, NodeType.Return);
     }
@@ -59,29 +61,30 @@ export class ReverseTree extends Tree {
     // I don't think that we can handle more complex (i.e. nested) callbacks...
     // perhaps I'll find a case that I think is doable and try to implement a solution but I doubt it's really feasible.
     // IMO this is good enough
-    parent!.rawStatement = parent!.rawStatement.slice(0, -1) + block + ')';
-    parent!.type = NodeType.Return;
+    parent.rawStatement = parent!.rawStatement.slice(0, -1) + block + ')';
+    parent.type = NodeType.Return;
+    Logger.debug('updated parent with callback: ', parent.statement);
     return;
   }
 
   getIfBlockStatements(block: string) {
     let depth = 0;
-    let bottomIdx = 3;
+    let bottomIdx = 3; // after the if(
     const matches = [];
     for (let i = 2; i < block.length; i++) {
       depth += block[i] === '(' ? 1 : block[i] === ')' ? -1 : 0;
       if (depth === 1 && block[i] === ',') {
-        matches.push(block.substring(bottomIdx, i));
+        matches.push(block.substring(bottomIdx, i).trim());
         bottomIdx = i + 1;
       }
     }
-    matches.push(block.substring(bottomIdx, block.length - 1));
+    matches.push(block.substring(bottomIdx, block.length - 1).trim());
     return matches;
   }
 
   ifBlockHandler(block: string, parent?: Node, side?: boolean) {
     const matches = this.getIfBlockStatements(block);
-
+    Logger.info('if block: ', matches);
     if (matches.length === 3) {
       parent = this.add('', parent, NodeType.Logic, side);
       this.dfp(matches[0], parent, undefined);
@@ -98,6 +101,8 @@ export class ReverseTree extends Tree {
   }
 
   dfp(block: string, parent?: Node, side?: boolean): void {
+    block = block.trim();
+    Logger.debug('DFP iteration with block: ', block);
     if (block.startsWith('(index, current) =>')) {
       this.handleCallback(parent!, block);
       return;
@@ -105,8 +110,14 @@ export class ReverseTree extends Tree {
     // check for combination nodes
     const children = this.getCombinationNodeChildren(block);
     if (children.length > 2) {
+      Logger.info('Combination node detected: ', children);
       parent = this.add('', parent, NodeType.Combination);
       this.combinationHandler(children, parent);
+      return;
+    } else if (block.startsWith('(') && block.endsWith(')')) {
+      // if we have parentheses on both sides and no combination, that means these parentheses are redundant, slice 'em off and retry
+      block = block.slice(1, -1);
+      this.dfp(block, parent, side);
     } else if (block.startsWith('if(')) {
       // if (...) {...} case
       this.ifBlockHandler(block, parent, side);
@@ -115,6 +126,7 @@ export class ReverseTree extends Tree {
     } else {
       // todo - handle ternaries?
       // return case
+      Logger.info('Classified node as return node, no further work');
       this.add(block, parent, NodeType.Return, side);
     }
   }

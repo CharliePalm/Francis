@@ -1,6 +1,7 @@
 import { NodeType } from '../model';
 import { Node } from './node';
 import { getBlockContent, getStatement } from './helpers';
+import { Logger } from './logger';
 
 /**
  * this class is a binary tree representing the flow of logic
@@ -75,6 +76,7 @@ export class Tree {
         )
         .replace('}', '');
     }
+    Logger.debug('wrapping children - ', children);
     children.forEach((childStatement) => {
       this.dfp(childStatement, node);
     });
@@ -178,25 +180,46 @@ export class Tree {
     // check for combination node:
     const children: string[] = [];
     let [index, bottomPtr, depth] = [0, 0, 0];
+    Logger.debug('getting block children');
+    let inDoubleQuote = false;
+    let inSingleQuote = false;
+    const inQuote = () => inDoubleQuote || inSingleQuote;
     while (index < block.length) {
-      if (['(', '{'].includes(block[index])) {
+      if (block[index] === '"' || block[index] === "'") {
+        if (block[index] === '"')
+          inDoubleQuote = inSingleQuote ? inDoubleQuote : !inDoubleQuote;
+        if (block[index] === "'")
+          inSingleQuote = inDoubleQuote ? inSingleQuote : !inSingleQuote;
+        index += 1;
+        continue;
+      } else if (inQuote()) {
+        index += 1;
+        continue;
+      }
+
+      if (['(', '{'].includes(block[index]) && !inQuote()) {
         depth += 1;
-      } else if ([')', '}'].includes(block[index])) {
+      } else if ([')', '}'].includes(block[index]) && !inQuote()) {
         depth -= 1;
         if (index === block.length - 1 && children.length > 1) {
-          children.push(block.substring(bottomPtr, block.length));
+          children.push(block.substring(bottomPtr, block.length).trim());
           break;
         }
       } else if (
         depth === 0 &&
+        !inQuote() &&
         (['+', '-', '/', '*', '<', '>'].includes(block[index]) ||
           (index !== 0 &&
-            ['||', '&&'].includes(block[index - 1] + block[index])))
+            ['||', '&&', '=='].includes(block[index - 1] + block[index])))
       ) {
+        Logger.debug('found operator in string at index ', index);
         const isBooleanOperator =
-          index !== 0 && ['||', '&&'].includes(block[index - 1] + block[index]);
+          index !== 0 &&
+          ['||', '&&', '=='].includes(block[index - 1] + block[index]);
         children.push(
-          block.substring(bottomPtr, isBooleanOperator ? index - 1 : index)
+          block
+            .substring(bottomPtr, isBooleanOperator ? index - 1 : index)
+            .trim()
         );
 
         const topIndex =
@@ -206,9 +229,12 @@ export class Tree {
             : 1);
 
         children.push(
-          block.substring(isBooleanOperator ? index - 1 : index, topIndex)
+          block
+            .substring(isBooleanOperator ? index - 1 : index, topIndex)
+            .trim()
         );
         bottomPtr = topIndex;
+      } else if (['+', '-', '/', '*', '<', '>'].includes(block[index])) {
       }
       index += 1;
     }

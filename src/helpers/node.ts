@@ -14,7 +14,9 @@ export class Node {
     public type: NodeType,
     public rawStatement: string,
     public isReverse = false
-  ) {}
+  ) {
+    rawStatement = rawStatement.trim();
+  }
 
   public get statement() {
     return this.nose + this.rawStatement + this.tail;

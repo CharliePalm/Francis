@@ -30,25 +30,21 @@ const getComplex = (
 import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
 import * as Model from './src/model';
 class MyFirstFormula extends NotionFormulaGenerator {
-    ${properties
-      .map((prop) => `public ${prop[0]} = new Model.${prop[1]}('${prop[0]}');`)
-      .join('\n')}
+  ${properties
+    .map((prop) => `public ${prop[0]} = new Model.${prop[1]}('${prop[0]}');`)
+    .join('\n')}
 
-    formula() {
-        ${innerFormula}
-    }
+  formula() {
+    ${innerFormula}
+  }
 
-    ${wrappers.reduce(
-      (prev, [name, content]) => prev + `${name}() {${content}}\n`,
-      ''
-    )}
+  ${wrappers.map((wrapper) => `${wrapper[0]}() {${wrapper[1]}}`).join('\n\n')}
 
-    public buildFunctionMap(): Map<string, string> {
-        return new Map([${wrappers.reduce(
-          (prev, [name]) => prev + `\n['${name}', this.${name}.toString()],\n`,
-          ''
-        )}]);
-    }
+  public buildFunctionMap(): Map<string, string> {
+    return new Map([${wrappers
+      .map((wrapper) => `['${wrapper[0]}', this.${wrapper[0]}.toString()],`)
+      .join('\n')}]);
+  }
 }
 `);
 
@@ -223,8 +219,8 @@ describe('NotionFormulaCodifier', () => {
           await getComplex(
             'if (1 + this.func1() - this.func2() + 1 >= 0) { return "1" } else { return "0"; }',
             [
-              ['func1', 'if (this.myProperty) {return 1;} else {return 0;}'],
               ['func2', 'if (this.myProperty) {return -1;} else {return -2;}'],
+              ['func1', 'if (this.myProperty) {return 1;} else {return 0;}'],
             ]
           )
         );
@@ -244,6 +240,7 @@ describe('NotionFormulaCodifier', () => {
         formula,
         properties
       ).decompile();
+      console.log(result);
       expect(result).toEqual(
         await getComplex(
           'if (1 + this.func2() >= 0) { return "1" } else { return "0"; }',

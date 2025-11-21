@@ -19,12 +19,18 @@ export class NotionFormulaCodifier {
     private properties: Record<string, CodifyProperty>
   ) {}
 
-  getFormula = (
+  wrapperFunctions: Map<string, string> = new Map();
+
+  getFormula(
     formula: string,
-    properties: Record<string, string>[],
-    wrappers: [string, string][]
-  ): Promise<string> =>
-    esLintFormat(`
+    properties: Record<string, string>[]
+  ): Promise<string> {
+    const wrappers = [];
+    for (const key of this.wrapperFunctions) {
+      wrappers.push(key);
+    }
+    wrappers.sort((a, b) => (a[0] > b[0] ? -1 : 1));
+    return esLintFormat(`
       import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
       import * as Model from './src/model';
       class MyFirstFormula extends NotionFormulaGenerator {
@@ -45,83 +51,77 @@ export class NotionFormulaCodifier {
           }
 
           ${wrappers.reduce(
-            (prev, [name, content]) => prev + `${name}() {${content}}\n`,
+            (prev, [name, content]) => prev + `${name}() {${content}}\n\n`,
             ''
           )}
 
           public buildFunctionMap(): Map<string, string> {
               return new Map([${wrappers.reduce(
                 (prev, [name]) =>
-                  prev + `\n['${name}', this.${name}.toString()],\n`,
+                  prev + `\n['${name}', this.${name}.toString()],`,
                 ''
               )}]);
           }
       }`);
+  }
 
-  wrapLogic(node: Node, wrappers: [string, string][], currentFormula: string) {
-    const innerWrappers: [string, string][] = [];
+  wrapLogic(node: Node, currentFormula: string) {
     let innerFormula = '';
     if (node.type === NodeType.Wrapper) {
       node.wrappedChildren.forEach((child) => {
-        innerFormula += this.build(child, innerWrappers, innerFormula);
+        innerFormula += this.build(child, innerFormula);
       });
     } else {
-      innerFormula += this.build(node, innerWrappers, innerFormula);
+      innerFormula += this.build(node, innerFormula);
     }
 
-    wrappers.push([
-      'func' + (wrappers.length + innerWrappers.length + 1),
-      innerFormula.startsWith('if') ? innerFormula : 'return ' + innerFormula,
-    ]);
-    innerWrappers.forEach((iw) => wrappers.push(iw));
+    this.wrapperFunctions.set(
+      'func' + (this.wrapperFunctions.size + 1),
+      innerFormula.startsWith('if') ? innerFormula : 'return ' + innerFormula
+    );
 
     currentFormula += `${
       currentFormula.endsWith('{') ? 'return ' : ''
-    } ${node.statement.slice(0, -1)}this.func${wrappers.length}()${
+    } ${node.statement.slice(0, -1)}this.func${this.wrapperFunctions.size}()${
       node.tail +
       new Array(node.statement.split('(').length - 1).fill(')').join('')
     }`;
     return currentFormula;
   }
 
-  build(node: Node, wrappers: [string, string][], currentFormula = ''): string {
+  build(node: Node, currentFormula = ''): string {
     switch (node?.type) {
       case NodeType.Logic:
         let logicStatement =
           node.logicChild.type === NodeType.Logic
-            ? this.wrapLogic(node.logicChild, wrappers, currentFormula)
-            : this.build(node.logicChild, wrappers, currentFormula);
+            ? this.wrapLogic(node.logicChild, currentFormula)
+            : this.build(node.logicChild, currentFormula);
         currentFormula = 'if (' + logicStatement + ') { return ';
         currentFormula =
-          this.build(node.trueChild, wrappers, currentFormula) +
-          '} else { return ';
-        currentFormula = this.build(node.falseChild, wrappers, currentFormula);
+          this.build(node.trueChild, currentFormula) + '} else { return ';
+        currentFormula = this.build(node.falseChild, currentFormula);
         currentFormula += '}';
         break;
       case NodeType.Return:
         currentFormula += node.statement;
         break;
       case NodeType.Wrapper:
-        currentFormula = this.wrapLogic(node, wrappers, currentFormula);
+        currentFormula = this.wrapLogic(node, currentFormula);
         break;
       case NodeType.Combination:
         currentFormula += node.nose;
         node.wrappedChildren.forEach((child) => {
-          currentFormula = this.build(child, wrappers, currentFormula);
+          currentFormula = this.build(child, currentFormula);
         });
     }
     return currentFormula;
-  }
-
-  transformCallback(callback: string): string {
-    return callback;
   }
 
   findClosingParen(str: string, start: number): number {
     let depth = 1;
     for (let i = start; i < str.length; i++) {
       if (str[i] === '(') depth++;
-      if (str[i] === ')') depth--;
+      else if (str[i] === ')') depth--;
       if (depth === 0) return i;
     }
     throw new Error('Unbalanced parentheses');
@@ -217,10 +217,8 @@ export class NotionFormulaCodifier {
       this.formula = this.formula.substring(1, this.formula.length - 1);
     }
     const tree = new ReverseTree(this.formula);
-    // replace references to database properties
-    const wrappers: [string, string][] = [];
-    this.formula = this.build(tree.root, wrappers);
-    const result = await this.getFormula(this.formula, propertyVals, wrappers);
+    this.formula = this.build(tree.root);
+    const result = await this.getFormula(this.formula, propertyVals);
     return result;
   }
 }

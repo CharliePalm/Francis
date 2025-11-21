@@ -45,6 +45,23 @@ describe('reverseTree', () => {
     });
   });
 
+  describe('string parsing', () => {
+    it('should pull off start and end parentheses if present', () => {
+      const formula = 'if(((this.a + 1) * 2 >= 0),1,0)';
+      tree.dfp(formula);
+      expect(tree.root.type).toEqual(NodeType.Logic);
+      expect(tree.root.statement).toEqual('');
+      expect(tree.root.logicChild.statement).toEqual('');
+      expect(tree.root.logicChild.type).toEqual(NodeType.Combination);
+      expect(tree.root.logicChild.wrappedChildren).toHaveLength(1);
+      expect(tree.root.logicChild.wrappedChildren[0].statement).toEqual(
+        '(this.a + 1)*2>= 0'
+      );
+      expect(tree.root.trueChild.statement).toEqual('1');
+      expect(tree.root.falseChild.statement).toEqual('0');
+    });
+  });
+
   describe('combinations', () => {
     it('should handle a simple combination node', () => {
       tree.dfp('if(1,-1,2)+toNumber(this.myProperty)');
@@ -60,5 +77,9 @@ describe('reverseTree', () => {
         '+toNumber(this.myProperty)'
       );
     });
+  });
+
+  describe('getIfBlockStatements', () => {
+    it('should handle multi-nested if statements', () => {});
   });
 });
