@@ -3,6 +3,7 @@ import {
   CodifyProperty,
 } from '../src/NotionFormulaCodifier';
 import { esLintFormat } from '../src/helpers/helpers';
+import { typeMap } from '../src/helpers/utils';
 
 const getBasic = (innerFormula: string) =>
   esLintFormat(`
@@ -21,32 +22,46 @@ const getBasic = (innerFormula: string) =>
     }
 `);
 
+const capitalize = (s: string) => s.at(0)?.toUpperCase() + s.slice(1);
+
 const getComplex = (
   innerFormula: string,
   wrappers: [string, string][],
-  properties: [string, string][] = [['myProperty', 'Checkbox']]
-) =>
-  esLintFormat(`
-import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
-import * as Model from './src/model';
-class MyFirstFormula extends NotionFormulaGenerator {
-  ${properties
-    .map((prop) => `public ${prop[0]} = new Model.${prop[1]}('${prop[0]}');`)
-    .join('\n')}
-
-  formula() {
-    ${innerFormula}
+  properties: Record<string, CodifyProperty> = {
+    myProperty: { type: 'checkbox', name: 'myProperty' },
   }
+) => {
+  const mappedProperties = Object.keys(properties).map((prop) => [
+    properties[prop].name,
+    properties[prop].type,
+  ]);
+  return esLintFormat(`
+    import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
+    import * as Model from './src/model';
+    class MyFirstFormula extends NotionFormulaGenerator {
+      ${mappedProperties
+        .map(
+          (prop) =>
+            `public ${prop[0]} = new Model.${typeMap(prop[1])}('${prop[0]}');`
+        )
+        .join('\n')}
 
-  ${wrappers.map((wrapper) => `${wrapper[0]}() {${wrapper[1]}}`).join('\n\n')}
+      formula() {
+        ${innerFormula}
+      }
 
-  public buildFunctionMap(): Map<string, string> {
-    return new Map([${wrappers
-      .map((wrapper) => `['${wrapper[0]}', this.${wrapper[0]}.toString()],`)
-      .join('\n')}]);
-  }
-}
-`);
+      ${wrappers
+        .map((wrapper) => `${wrapper[0]}() {${wrapper[1]}}`)
+        .join('\n\n')}
+
+      public buildFunctionMap(): Map<string, string> {
+        return new Map([${wrappers
+          .map((wrapper) => `['${wrapper[0]}', this.${wrapper[0]}.toString()],`)
+          .join('\n')}]);
+      }
+    }
+    `);
+};
 
 describe('NotionFormulaCodifier', () => {
   describe('execReplace', () => {
@@ -70,6 +85,10 @@ describe('NotionFormulaCodifier', () => {
         'this.myProperty.map((index, current) => this.format(current))'
       );
     });
+  });
+
+  describe('reduceWrappers', () => {
+    // todo, write some tests here
   });
 
   describe('e2e', () => {
@@ -129,32 +148,37 @@ describe('NotionFormulaCodifier', () => {
       });
 
       it('should properly handle a nested wrapper', async () => {
+        const properties = {
+          myProperty: {
+            id: '%3Cmrr',
+            name: 'myProperty',
+            type: 'checkbox',
+            checkbox: {},
+          },
+          otherProperty: {
+            id: '%12Df3',
+            name: 'otherProperty',
+            type: 'checkbox',
+            checkbox: {},
+          },
+        };
         expect(
           await new NotionFormulaCodifier(
             `round(if(prop("my property"),format(if(prop("other property"), 0, 1)),0))`,
-            {
-              myProperty: {
-                id: '%3Cmrr',
-                name: 'myProperty',
-                type: 'checkbox',
-                checkbox: {},
-              },
-              otherProperty: {
-                id: '%12Df3',
-                name: 'myProperty',
-                type: 'checkbox',
-                checkbox: {},
-              },
-            }
+            properties
           ).decompile()
         ).toEqual(
-          await getComplex('return this.round(this.func2());', [
+          await getComplex(
+            'return this.round(this.func2());',
             [
-              'func2',
-              'if (this.myProperty) {return this.format(this.func1());} else {return 0;}',
+              [
+                'func2',
+                'if (this.myProperty) {return this.format(this.func1());} else {return 0;}',
+              ],
+              ['func1', 'if (this.otherProperty) {return 0;} else {return 1;}'],
             ],
-            ['func1', 'if (this.otherProperty) {return 0;} else {return 1;}'],
-          ])
+            properties
+          )
         );
       });
     });
@@ -240,7 +264,6 @@ describe('NotionFormulaCodifier', () => {
         formula,
         properties
       ).decompile();
-      console.log(result);
       expect(result).toEqual(
         await getComplex(
           'if (1 + this.func2() >= 0) { return "1" } else { return "0"; }',
@@ -283,7 +306,7 @@ describe('NotionFormulaCodifier', () => {
       });
     });
 
-    xdescribe('examples/complex formulas', () => {
+    describe('examples/complex formulas', () => {
       it('should handle a complex formula with callbacks', async () => {
         const props = {
           Modifier: {
@@ -354,10 +377,31 @@ describe('NotionFormulaCodifier', () => {
           Skill: { id: 'title', name: 'Skill', type: 'title', title: {} },
         };
         const formula = `if((((toNumber(join(map(Prop("Base Modifier"), format(current)), ",")) + Prop("Other Bonus")) + (if(Prop("Proficient"), toNumber(join(map(Prop("Proficiency Bonus"), format(current)), ",")), 0))) >= 0), "+", "") + format((toNumber(join(map(Prop("Base Modifier"), format(current)), ",")) + Prop("Other Bonus")) + (if(Prop("Proficient"), toNumber(join(map(Prop("Proficiency Bonus"), format(current)), ",")), 0))))`;
-
-        expect(
-          await new NotionFormulaCodifier(formula, props).decompile()
-        ).toEqual('');
+        const result = await new NotionFormulaCodifier(
+          formula,
+          props
+        ).decompile();
+        expect(result).toEqual(
+          await getComplex(
+            'return this.func3() + this.func4()',
+            [
+              ['func4', 'return this.format(this.func2());'],
+              [
+                'func3',
+                `if (this.func2() >= 0) { return '+'; } else {return '';}`,
+              ],
+              [
+                'func2',
+                `return (this.toNumber(this.join(this.baseModifier.map((index, current) => this.format(current)),',')) +this.otherBonus.value +this.func1());`,
+              ],
+              [
+                'func1',
+                `if (this.proficient) {return this.toNumber(this.join(this.proficiencyBonus.map((index, current) => this.format(current)),','));} else {return 0;}`,
+              ],
+            ],
+            props
+          )
+        );
       });
     });
   });

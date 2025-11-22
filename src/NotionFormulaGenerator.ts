@@ -38,8 +38,9 @@ export abstract class NotionFormulaGenerator {
     this.updateFunctionMap(functionMap);
     const constMap = new Map<string, string>();
     // begin replacements
-    const formulaBody = this.formula
+    let formulaBody = this.formula
       .toString()
+      .slice(11, -1) // Remove formula() {} wrapper
       .replace(/\/\/.*$/gm, '') // Remove all comments
       .replace(
         new RegExp(`this\\.(${[...functionMap.keys()].join('|')})\\(\\)`, 'g'),
@@ -80,8 +81,9 @@ export abstract class NotionFormulaGenerator {
       .replace(/return/g, '') // Remove the return keyword
       .replace(/;/g, '') // Remove semicolons
       .replace(/!==/g, '!=') // remove big equals/not-equals
-      .replace(/===/g, '==')
-      .slice(10, -1); // Remove formula() {} wrapper
+      .replace(/===/g, '==');
+
+    formulaBody = NotionFormulaGenerator.catchFallThroughElse(formulaBody);
     // create tree
     this.tree = new Tree(formulaBody);
     // replace references to database properties
@@ -92,6 +94,52 @@ export abstract class NotionFormulaGenerator {
 
   public buildFunctionMap(): Map<string, string> {
     return new Map<string, string>();
+  }
+
+  private static catchFallThroughElse(formulaBody: string): string {
+    let toRet = '';
+    const min = (index: number) => Math.min(index, formulaBody.length - 1);
+    const startOfElseBlock = (index: number) =>
+      formulaBody.substring(min(index), min(index + 5)) === 'else{';
+    const isStartOfLogic = (index: number) =>
+      formulaBody.substring(min(index), min(index + 3)) === 'if(' ||
+      formulaBody.substring(min(index), min(index + 7)) === 'elseif(' ||
+      startOfElseBlock(index) ||
+      formulaBody.substring(min(index), min(index + 3)) === 'if(';
+
+    let inElseBlock = false;
+    const findNextindex = (index: number) => {
+      while (
+        !['{', '}'].includes(formulaBody[index]) &&
+        index < formulaBody.length
+      ) {
+        index++;
+      }
+      return index;
+    };
+
+    let i = 0;
+    while (i < formulaBody.length) {
+      const char = formulaBody[i];
+      toRet += char;
+      if (char === '}') {
+        if (
+          !inElseBlock &&
+          !isStartOfLogic(i + 1) &&
+          i !== formulaBody.length - 1 &&
+          [char, formulaBody[min(i + 1)]].every((v) => ![')', ','].includes(v))
+        ) {
+          const newIndex = findNextindex(i + 1);
+          if (formulaBody.substring(i + 1, newIndex))
+            toRet += `else{${formulaBody.substring(i + 1, newIndex)}}`;
+          i = newIndex;
+          continue;
+        }
+        inElseBlock = startOfElseBlock(i);
+      }
+      i++;
+    }
+    return toRet;
   }
 
   /**

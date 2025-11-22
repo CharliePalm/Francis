@@ -43,6 +43,28 @@ describe('notionFormulaGenerator', () => {
         });
     });
 
+    describe('catchFallThroughElse', () => {
+        it('should append else to a fallthrough if', () => {
+            const inp = 'if(1+1){1}elseif(2+2){2}4'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){1}elseif(2+2){2}else{4}')
+        });
+
+        it('should append else to a nested if', () => {
+            const inp = 'if(1+1){if(1){2}0}else{4}'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){if(1){2}else{0}}else{4}')
+        });
+
+        it('should append else to a nested if and fallthrough if', () => {
+            const inp = 'if(1+1){if(1){2}0}4'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){if(1){2}else{0}}else{4}')
+        });
+
+        it('should not add unnecessary else blocks to logic in functions', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))')
+        });
+    });
+
     describe('base functionality', () => {
         class BlankTestClass extends NotionFormulaGenerator {
             formula() {

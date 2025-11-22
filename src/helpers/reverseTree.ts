@@ -35,15 +35,19 @@ export class ReverseTree extends Tree {
     );
   }
 
-  combinationHandler(children: string[], parent?: Node): void {
+  combinationHandler(children: string[], combinationParent?: Node): void {
     let subStatement = '';
     children.forEach((childStatement) => {
       if (childStatement.includes('if(')) {
         if (subStatement.length) {
-          this.add(subStatement, parent, NodeType.Return);
+          this.add(subStatement, combinationParent, NodeType.Return);
           subStatement = '';
         }
-        const innerWrapperParent = this.add('', parent, NodeType.Wrapper);
+        const innerWrapperParent = this.add(
+          '',
+          combinationParent,
+          NodeType.Wrapper
+        );
         this.dfp(childStatement, innerWrapperParent);
       } else {
         subStatement += childStatement;
@@ -51,7 +55,7 @@ export class ReverseTree extends Tree {
     });
     Logger.debug('finished iterating - substatement: ', subStatement);
     if (subStatement.length) {
-      this.add(subStatement, parent, NodeType.Return);
+      this.add(subStatement, combinationParent, NodeType.Return);
     }
     return;
   }
@@ -109,7 +113,10 @@ export class ReverseTree extends Tree {
     }
     // check for combination nodes
     const children = this.getCombinationNodeChildren(block);
-    if (children.length > 2) {
+    if (
+      children.length > 2 &&
+      children.some((child) => child.includes('if('))
+    ) {
       Logger.info('Combination node detected: ', children);
       parent = this.add('', parent, NodeType.Combination);
       this.combinationHandler(children, parent);

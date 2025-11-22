@@ -177,6 +177,8 @@ export class Tree {
    * @returns the split statement
    */
   getCombinationNodeChildren(block: string): string[] {
+    Logger.debug('getting children for statement: ', block);
+
     // check for combination node:
     const children: string[] = [];
     let [index, bottomPtr, depth] = [0, 0, 0];
@@ -184,6 +186,7 @@ export class Tree {
     let inDoubleQuote = false;
     let inSingleQuote = false;
     const inQuote = () => inDoubleQuote || inSingleQuote;
+    let lastChar: string = '';
     while (index < block.length) {
       if (block[index] === '"' || block[index] === "'") {
         if (block[index] === '"')
@@ -192,7 +195,7 @@ export class Tree {
           inSingleQuote = inDoubleQuote ? inSingleQuote : !inSingleQuote;
         index += 1;
         continue;
-      } else if (inQuote()) {
+      } else if (inQuote() || block[index] === ' ') {
         index += 1;
         continue;
       }
@@ -206,6 +209,7 @@ export class Tree {
           break;
         }
       } else if (
+        lastChar != ',' &&
         depth === 0 &&
         !inQuote() &&
         (['+', '-', '/', '*', '<', '>'].includes(block[index]) ||
@@ -216,30 +220,31 @@ export class Tree {
         const isBooleanOperator =
           index !== 0 &&
           ['||', '&&', '=='].includes(block[index - 1] + block[index]);
-        children.push(
-          block
-            .substring(bottomPtr, isBooleanOperator ? index - 1 : index)
-            .trim()
-        );
+        if ((isBooleanOperator ? index - 1 : index) - bottomPtr > 0) {
+          children.push(
+            block
+              .substring(bottomPtr, isBooleanOperator ? index - 1 : index)
+              .trim()
+          );
 
-        const topIndex =
-          index +
-          (['<', '>'].includes(block[index]) && block[index + 1] === '='
-            ? 2
-            : 1);
-
-        children.push(
-          block
-            .substring(isBooleanOperator ? index - 1 : index, topIndex)
-            .trim()
-        );
-        bottomPtr = topIndex;
-      } else if (['+', '-', '/', '*', '<', '>'].includes(block[index])) {
+          const topIndex =
+            index +
+            (['<', '>'].includes(block[index]) && block[index + 1] === '='
+              ? 2
+              : 1);
+          children.push(
+            block
+              .substring(isBooleanOperator ? index - 1 : index, topIndex)
+              .trim()
+          );
+          bottomPtr = topIndex;
+        }
       }
+      lastChar = block[index];
       index += 1;
     }
     if (
-      children.length > 2 &&
+      children.length >= 2 &&
       ['+', '-', '/', '*', '<', '>', '||', '&&'].some((operator) =>
         children[children.length - 1].startsWith(operator)
       )
@@ -247,6 +252,7 @@ export class Tree {
       // we have a tail - i.e. there is an operator in the last position of the array and we need to add on the rest of the string
       children.push(block.substring(bottomPtr, block.length));
     }
+    Logger.info('returning combination children: ', children);
     return children;
   }
 }

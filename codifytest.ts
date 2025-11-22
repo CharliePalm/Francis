@@ -3,23 +3,23 @@ const formula =
   '(if((((toNumber(join(map(prop("Base Modifier"), format(current)), ",")) + prop("Other Bonus")) + (if(prop("Proficient"), toNumber(join(map(prop("Proficiency Bonus"), format(current)), ",")), 0))) >= 0), "+", "") + format((toNumber(join(map(prop("Base Modifier"), format(current)), ",")) + prop("Other Bonus")) + (if(prop("Proficient"), toNumber(join(map(prop("Proficiency Bonus"), format(current)), ",")), 0))))';
 const result = new NotionFormulaCodifier(formula, {
   ['Base Modifier']: {
-    name: 'tags',
-    type: 'number',
-    checkbox: {},
+    name: 'baseModifier',
+    type: 'rollup',
+    rollup: {},
   },
   ['Other Bonus']: {
-    name: 'level',
+    name: 'otherBonus',
     type: 'number',
-    relation: {},
+    number: {},
   },
   Proficient: {
-    name: 'amount',
+    name: 'proficient',
     type: 'checkbox',
-    relation: {},
+    checkbox: {},
   },
   'Proficiency Bonus': {
-    name: 'amount',
-    type: 'number',
+    name: 'proficiencyBonus',
+    type: 'rollup',
   },
 })
   .decompile()

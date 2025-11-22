@@ -51,12 +51,8 @@ describe('reverseTree', () => {
       tree.dfp(formula);
       expect(tree.root.type).toEqual(NodeType.Logic);
       expect(tree.root.statement).toEqual('');
-      expect(tree.root.logicChild.statement).toEqual('');
-      expect(tree.root.logicChild.type).toEqual(NodeType.Combination);
-      expect(tree.root.logicChild.wrappedChildren).toHaveLength(1);
-      expect(tree.root.logicChild.wrappedChildren[0].statement).toEqual(
-        '(this.a + 1)*2>= 0'
-      );
+      expect(tree.root.logicChild.statement).toEqual('(this.a + 1) * 2 >= 0');
+      expect(tree.root.logicChild.type).toEqual(NodeType.Return);
       expect(tree.root.trueChild.statement).toEqual('1');
       expect(tree.root.falseChild.statement).toEqual('0');
     });

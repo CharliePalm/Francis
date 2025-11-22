@@ -4,6 +4,7 @@ import { ReverseTree } from './helpers/reverseTree';
 import { Node } from './helpers/node';
 import { lowerCamel, typeMap } from './helpers/utils';
 import { NodeType } from './model';
+import { Logger } from './helpers/logger';
 
 export interface CodifyProperty {
   name: string;
@@ -12,6 +13,7 @@ export interface CodifyProperty {
 }
 
 const HAS_CALLBACK = ['map', 'filter', 'find', 'findIndex', 'some', 'every'];
+const ADD_VALUE_TYPES = ['number'];
 
 export class NotionFormulaCodifier {
   constructor(
@@ -21,32 +23,120 @@ export class NotionFormulaCodifier {
 
   wrapperFunctions: Map<string, string> = new Map();
 
-  getFormula(
-    formula: string,
-    properties: Record<string, string>[]
-  ): Promise<string> {
-    const wrappers = [];
-    for (const key of this.wrapperFunctions) {
-      wrappers.push(key);
-    }
+  private replaceArithmeticUsage(
+    toFind: string,
+    wrappers: [string, string][]
+  ): void {
+    Logger.debug('debugging for var', toFind);
+    const escaped = toFind.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(
+      `(\\+|\\-|\\*|/)?\\s*(this\\.${escaped})\\s*(\\+|\\-|\\*|/)?`,
+      'g'
+    );
+    const execReplace = (str: string) =>
+      str.replace(regex, (_, beforeOp, variable, afterOp) => {
+        let result = variable + '.value';
+        if (beforeOp) result = beforeOp + ' ' + result;
+        if (afterOp) result = result + ' ' + afterOp;
+        return result;
+      });
+    wrappers.forEach((wrapper) => (wrapper[1] = execReplace(wrapper[1])));
+    execReplace(this.formula);
+  }
+
+  private reduceWrappers(): [string, string][] {
+    let wrappers: [string, string][] = [];
+    let toReplace: [string, string][];
+    let replacedFns: [string, string][] = [];
+
+    // check if we have duplicated wrapper logic
+    do {
+      toReplace = [];
+      wrappers = [];
+      for (const entry of this.wrapperFunctions) {
+        const existingWrapper = wrappers.find((wrapper) => {
+          return wrapper[1] === entry[1];
+        });
+
+        if (existingWrapper) {
+          toReplace.push([entry[0], existingWrapper[0]]);
+        } else {
+          wrappers.push(entry);
+        }
+      }
+      toReplace.forEach((replace) => {
+        wrappers.forEach((wrapper) => {
+          wrapper[1] = wrapper[1].replace(`${replace[0]}()`, `${replace[1]}()`);
+        });
+      });
+      this.wrapperFunctions = new Map(wrappers);
+      replacedFns = replacedFns.concat(toReplace);
+    } while (toReplace.length);
+
     wrappers.sort((a, b) => (a[0] > b[0] ? -1 : 1));
-    return esLintFormat(`
+
+    // this is expensive, and could definitely be tuned, but IMO worth it to not have weirdly named functions
+    // I just don't think I care enough to make it much faster because I don't think we'll ever have a case
+    // where this many O(n)ish operations actually matters based on formula size
+
+    replacedFns.forEach((replace) => {
+      this.formula = this.formula.replace(`${replace[0]}()`, `${replace[1]}()`);
+    });
+
+    console.log(replacedFns);
+
+    replacedFns = [];
+    wrappers.forEach((wrapper, index) => {
+      if (wrapper[0].at(-1) !== (wrappers.length - index).toString()) {
+        const orig = wrapper[0];
+        wrapper[0] = wrapper[0].slice(0, -1) + (wrappers.length - index);
+        replacedFns.push([orig, wrapper[0]]);
+        for (let j = index + 1; j < wrappers.length; j++) {
+          wrappers[j][1] = wrappers[j][1].replace(
+            `${orig}()`,
+            `${wrapper[0]}()`
+          );
+        }
+      }
+    });
+    Logger.debug('replacedFns', replacedFns);
+    replacedFns.forEach((replace) => {
+      this.formula = this.formula.replace(`${replace[0]}()`, `${replace[1]}()`);
+    });
+
+    return wrappers;
+  }
+
+  getFormula(properties: Record<string, string>[]): Promise<string> {
+    const wrappers = this.reduceWrappers();
+    properties.forEach(
+      (property) => (property.name = lowerCamel(property.name))
+    );
+    properties.forEach(
+      (property) =>
+        ADD_VALUE_TYPES.includes(property.type) &&
+        this.replaceArithmeticUsage(property.name, wrappers)
+    );
+
+    let rawFormula = `
       import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
       import * as Model from './src/model';
       class MyFirstFormula extends NotionFormulaGenerator {
           ${properties.reduce(
             (prev, property) =>
-              `public ${property.name} = new Model.${typeMap(property.type)}('${
-                property.name
-              }');\n`,
+              prev +
+              `public ${lowerCamel(property.name)} = new Model.${typeMap(
+                property.type
+              )}('${property.name}');\n`,
             ''
           )}
 
           formula() {
             ${
-              (formula.startsWith('return') || formula.startsWith('if')
+              (this.formula.startsWith('return') ||
+              this.formula.startsWith('if')
                 ? ''
-                : 'return ') + formula
+                : 'return ') + this.formula
             }
           }
 
@@ -62,7 +152,9 @@ export class NotionFormulaCodifier {
                 ''
               )}]);
           }
-      }`);
+      }`;
+
+    return esLintFormat(rawFormula);
   }
 
   wrapLogic(node: Node, currentFormula: string) {
@@ -80,12 +172,25 @@ export class NotionFormulaCodifier {
       innerFormula.startsWith('if') ? innerFormula : 'return ' + innerFormula
     );
 
+    Logger.debug('creating wrapper logic for: ', node.statement);
+    const sliceParentheses = (str: string) => {
+      let i = str.length - 1;
+      while (str[i] === ')') {
+        i--;
+      }
+      return str.slice(0, i + 1);
+    };
+
+    const slicedStatement = sliceParentheses(node.statement);
+
     currentFormula += `${
       currentFormula.endsWith('{') ? 'return ' : ''
-    } ${node.statement.slice(0, -1)}this.func${this.wrapperFunctions.size}()${
-      node.tail +
-      new Array(node.statement.split('(').length - 1).fill(')').join('')
+    } ${slicedStatement}this.func${this.wrapperFunctions.size}()${
+      node.tail.replace(')', '') + // this is hacky and I don't know if it actually works but fixes a use case...
+      new Array(slicedStatement.split('(').length - 1).fill(')').join('')
     }`;
+
+    Logger.debug('returning wrappers: ', this.wrapperFunctions);
     return currentFormula;
   }
 
@@ -218,7 +323,7 @@ export class NotionFormulaCodifier {
     }
     const tree = new ReverseTree(this.formula);
     this.formula = this.build(tree.root);
-    const result = await this.getFormula(this.formula, propertyVals);
+    const result = await this.getFormula(propertyVals);
     return result;
   }
 }
