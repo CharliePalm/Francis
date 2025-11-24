@@ -45,9 +45,13 @@ export class NotionFormulaCodifier {
   }
 
   private reduceWrappers(): [string, string][] {
-    let wrappers: [string, string][] = [];
+    // this is expensive, and could definitely be tuned, but IMO worth it to not have weirdly named functions
+    // I just don't think I care enough to make it much faster because I don't think we'll ever have a case
+    // where this many O(n)ish operations actually matters based on formula size
+
+    let wrappers: [string, string][];
     let toReplace: [string, string][];
-    let replacedFns: [string, string][] = [];
+    let replacedFns: [string, string][] = []; // keep track of all fns we replace over time
 
     // check if we have duplicated wrapper logic
     do {
@@ -75,15 +79,11 @@ export class NotionFormulaCodifier {
 
     wrappers.sort((a, b) => (a[0] > b[0] ? -1 : 1));
 
-    // this is expensive, and could definitely be tuned, but IMO worth it to not have weirdly named functions
-    // I just don't think I care enough to make it much faster because I don't think we'll ever have a case
-    // where this many O(n)ish operations actually matters based on formula size
-
     replacedFns.forEach((replace) => {
       this.formula = this.formula.replace(`${replace[0]}()`, `${replace[1]}()`);
     });
 
-    console.log(replacedFns);
+    Logger.debug('replaced fns: ', replacedFns);
 
     replacedFns = [];
     wrappers.forEach((wrapper, index) => {

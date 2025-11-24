@@ -88,7 +88,7 @@ export abstract class NotionFormulaGenerator {
     this.tree = new Tree(formulaBody);
     // replace references to database properties
     this.tree.root.replaceProperties(this.buildDbProps());
-    const endResult = this.build(this.tree.root, '');
+    const endResult = this.build(this.tree.root);
     return endResult;
   }
 
@@ -148,46 +148,31 @@ export abstract class NotionFormulaGenerator {
    * @param currentFormula - the current formula
    * @returns the completed formula for the step
    */
-  private build(node: Node, currentFormula: string): string {
+  private build(node: Node): string {
+    let myFormula = '';
     switch (node?.type) {
       case NodeType.Logic:
-        currentFormula += node.nose + 'if(';
-        if (!node.wrappedChildren?.length) {
-          currentFormula += node.rawStatement + ',';
-        } else {
-          node.wrappedChildren.forEach((child) => {
-            currentFormula = this.build(child, currentFormula);
-          });
-          currentFormula += node.rawStatement + ',';
-        }
-        currentFormula = this.build(node.trueChild, currentFormula) + ',';
-        currentFormula = this.build(node.falseChild, currentFormula);
-        currentFormula += ')' + node.tail;
+        myFormula = `${node.nose}if(${this.build(node.logicChild)},${this.build(
+          node.trueChild
+        )},${this.build(node.falseChild)})${node.tail}`;
         break;
       case NodeType.Return:
-        currentFormula += node.statement;
+        myFormula = node.statement;
         break;
       case NodeType.Wrapper:
-        node.wrappedChildren.forEach((child) => {
-          const idx = node.rawStatement.indexOf('()') + 1;
-          const statement = node.rawStatement.substring(0, idx);
-          currentFormula += statement;
-          currentFormula = this.build(child, currentFormula);
-          currentFormula += ')';
-          node.rawStatement = node.rawStatement.substring(
-            idx + 1,
-            node.rawStatement.length
-          );
-        });
-        currentFormula += node.tail;
+        myFormula = node.children
+          .map((child) => {
+            const idx = node.rawStatement.indexOf('()') + 1;
+            const statement = node.rawStatement.substring(0, idx);
+            return `${statement}(${this.build(child)}))`;
+          })
+          .join('');
         break;
       case NodeType.Combination:
-        currentFormula += node.nose;
-        node.wrappedChildren.forEach((child) => {
-          currentFormula = this.build(child, currentFormula);
-        });
+        myFormula = node.children.map((child) => this.build(child)).join('');
+        break;
     }
-    return currentFormula;
+    return myFormula;
   }
 
   private buildDbProps(): Record<string, Property> {
@@ -199,6 +184,7 @@ export abstract class NotionFormulaGenerator {
         validPropertyTypes.includes(thisObj[key].constructor?.name)
       )
       .forEach((key) => (dbObj[key] = thisObj[key]));
+    console.log(dbObj);
     return dbObj;
   }
 
@@ -541,6 +527,7 @@ export abstract class NotionFormulaGenerator {
   id(): string {
     return '';
   }
+
   and(val1: any, val2: any): boolean {
     return true;
   }

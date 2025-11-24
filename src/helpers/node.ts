@@ -22,6 +22,12 @@ export class Node {
     return this.nose + this.rawStatement + this.tail;
   }
 
+  public get children() {
+    return [this.logicChild, this.trueChild, this.falseChild]
+      .concat(this.wrappedChildren)
+      .filter(Boolean);
+  }
+
   addLogicChild(child: Node) {
     if (this.type !== NodeType.Logic) {
       throw new Error('cannot add logic child to non logic node');
@@ -100,9 +106,7 @@ export class Node {
 
     this.replaceFunctionsAndOperators();
     this.replaceCallbacks();
-    this.trueChild?.replaceProperties(propertyMap);
-    this.falseChild?.replaceProperties(propertyMap);
-    this.wrappedChildren?.forEach((child) => {
+    this.children.forEach((child) => {
       child.replaceProperties(propertyMap);
     });
   }

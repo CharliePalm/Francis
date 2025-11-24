@@ -60,6 +60,50 @@ export function getBlockContent(
   ];
 }
 
+export function getLogicChildren(block: string) {
+  if (!block.startsWith('if(') || !block.endsWith('}')) {
+    throw new Error('getLogicChildren called with non logic block - ' + block);
+  }
+  let index = block.indexOf('(') + 1; // start after if( or elseIf call
+  let depth = 1; // because we start right after the if
+  let depthChars = ['(', '{'];
+  let deDepthChars = [')', '}'];
+  let bottomIdx = index;
+  const blocks = new Array(3);
+  let blockIdx = 0;
+  while (index < block.length) {
+    if (depthChars.includes(block[index])) {
+      depth++;
+      if (depth === 1 && block[index] === '{') {
+        bottomIdx = index + 1;
+      }
+    } else if (deDepthChars.includes(block[index])) depth--;
+    // looking for what's in the if(...) block
+    if (blockIdx === 0) {
+      if (depth === 0 && block[index] === ')') {
+        blocks[blockIdx++] = block.substring(bottomIdx, index);
+      }
+    } else if (depth === 0 && block[index] === '}') {
+      // getting the if(){...} part of the block (true case)
+      blocks[blockIdx++] = block.substring(bottomIdx, index);
+      // getting the false case
+      while (
+        !deDepthChars.concat(depthChars).includes(block[++index]) &&
+        index < block.length
+      ) {}
+      // add 'if' if it was present (i.e. in an elseif block)
+      const prefix = block.substring(index - 2, index) === 'if' ? 'if(' : '';
+      blocks[blockIdx++] =
+        prefix + block.substring(index + 1, block.length - (prefix ? 0 : 1));
+      return blocks;
+    }
+    index++;
+  }
+  throw new Error(
+    `ran out of while loop while looking for logic children for block - ${block}, found children: ${blocks}`
+  );
+}
+
 export function getEndOfIfBlockIndex(block: string): number {
   let idx = block.indexOf('if(') + 3;
   let depth = 1;
@@ -99,12 +143,16 @@ export function getFalseBlockContent(
     return falseBlock.substring(start, falseBlock.length - endModifier);
     // return falseBlock.substring(start, falseBlock.lastIndexOf('}') + (blockContinues ? 1 : 0)); // save the last bracket char if we need to keep parsing this block
   }
+  throw Error(
+    'fallthrough block detected - not properly replaced with else {}. This is a bug in the code. Block: ' +
+      block
+  );
   // fall through case
-  const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
+  // const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
   // if the last part of the block is the fall through case we got lucky
-  return lastClosedBracketIdx === -1
-    ? falseBlock
-    : falseBlock.substring(0, lastClosedBracketIdx);
+  // return lastClosedBracketIdx === -1
+  //   ? falseBlock
+  //   : falseBlock.substring(0, lastClosedBracketIdx);
 }
 
 /**

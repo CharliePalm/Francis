@@ -287,6 +287,8 @@ export class LastEditedTime extends Date {}
 
 export class LastEditedBy extends Person {}
 
+export class ID extends Text {}
+
 // System
 export type NotionType =
   | NotionNumber
@@ -358,6 +360,7 @@ export enum PropertyType {
   CreatedBy = 'CreatedBy',
   LastEditedTime = 'LastEditedTime',
   LastEditedBy = 'LastEditedBy',
+  ID = 'ID',
 }
 
 export enum NodeType {

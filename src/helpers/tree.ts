@@ -1,6 +1,6 @@
 import { NodeType } from '../model';
 import { Node } from './node';
-import { getBlockContent, getStatement } from './helpers';
+import { getBlockContent, getLogicChildren, getStatement } from './helpers';
 import { Logger } from './logger';
 
 /**
@@ -82,6 +82,20 @@ export class Tree {
     });
   }
 
+  handleLogicCase(block: string, parent?: Node, side?: boolean) {
+    const [logic, t, f] = getLogicChildren(block);
+    if (!logic || !t || !f) {
+      throw new Error(
+        'error processing input: unexpected blank block ' + { logic, t, f }
+      );
+    }
+    Logger.debug('logic children: ', [logic, t, f]);
+    parent = this.add('', parent, NodeType.Logic, side);
+    this.dfp(logic, parent, undefined);
+    this.dfp(t, parent, true);
+    this.dfp(f, parent, false);
+  }
+
   private handleCombinationNode(
     combinations: string[],
     parent?: Node,
@@ -97,78 +111,38 @@ export class Tree {
    * @param block
    */
   dfp(block: string, parent?: Node, side?: boolean) {
-    const statement = getStatement(block);
-    // no statement implies that getBlockContent returned our statement for us
-    if (!statement) {
-      // return case
-      this.add(block, parent, NodeType.Return, side);
-      return;
-    }
-
-    if (statement === block) {
-      // wrapper function case
-      this.handleWrapperFunction(statement, parent, side);
-      return;
-    }
-
     const combinations = this.getCombinationNodeChildren(block);
-    if (combinations.length > 2) {
+    const combinationHasLogic = combinations.some((child) =>
+      child.includes('if(')
+    );
+    if (combinations.length > 2 && combinationHasLogic) {
       this.handleCombinationNode(combinations, parent, side);
-      return;
-    }
-
-    // check for nested logic nodes
-    let node: Node;
-    if (statement.includes('if(')) {
-      const endIdx = Math.max(
-        statement.lastIndexOf(')'),
-        statement.lastIndexOf('}')
+    } else if (
+      block.startsWith('(') &&
+      block.endsWith(')') &&
+      combinations.length === 0
+    ) {
+      block = block.slice(1, -1);
+      Logger.debug(
+        'shaving parentheses from block - continue dfp with new block: ',
+        block
       );
-      node = this.add(
-        statement.substring(endIdx),
-        parent,
-        NodeType.Logic,
-        side
-      );
-      node.nesting = true;
-      this.dfp(statement.substring(0, endIdx), node);
-      node.nesting = false;
+      this.dfp(block, parent, side);
+    } else if (block.startsWith('this.') && block.includes('if(')) {
+      // wrapper function case
+      this.handleWrapperFunction(block, parent, side);
+    } else if (block.startsWith('if(')) {
+      this.handleLogicCase(block, parent, side);
     } else {
-      // logic case
-      node = this.add(statement, parent, NodeType.Logic, side);
-    }
-
-    // "nose" on the front - arithmetic or something we need to include before the if statement
-    if (block.slice(0, 2) !== 'if') {
-      node.nose = block.slice(0, block.indexOf('if('));
-    }
-    const [t, f] = getBlockContent(block);
-    if (!f) {
-      throw new Error(
-        'error processing input: unexpected blank false block from true block: ' +
-          t
-      );
-    }
-    let updatedFalseBlock = f;
-    if (!parent?.nesting) {
-      let [closed, open, lastClosedIdx] = [0, 0, -1];
-      for (let idx = 0; idx < f.length; idx++) {
-        closed += f[idx] === '}' ? 1 : 0;
-        open += f[idx] === '{' ? 1 : 0;
-        lastClosedIdx = f[idx] === '}' ? idx : lastClosedIdx;
+      // if nothing else, this is a return node
+      if (block.includes('{') || block.includes('}')) {
+        throw Error(
+          'improperly formatted block classified as return node - there are still brackets present: ' +
+            block
+        );
       }
-
-      if (lastClosedIdx !== -1 && closed !== open) {
-        node.tail = f.substring(lastClosedIdx + 1);
-        updatedFalseBlock = f.substring(0, lastClosedIdx);
-      }
-    } else {
-      const lastCLosedIdx = f.lastIndexOf('}');
-      updatedFalseBlock =
-        lastCLosedIdx !== -1 ? f.substring(0, lastCLosedIdx) : f;
+      this.add(block, parent, NodeType.Return, side);
     }
-    this.dfp(t, node, true);
-    this.dfp(updatedFalseBlock, node, false);
   }
 
   /**
@@ -182,7 +156,6 @@ export class Tree {
     // check for combination node:
     const children: string[] = [];
     let [index, bottomPtr, depth] = [0, 0, 0];
-    Logger.debug('getting block children');
     let inDoubleQuote = false;
     let inSingleQuote = false;
     const inQuote = () => inDoubleQuote || inSingleQuote;
@@ -193,8 +166,6 @@ export class Tree {
           inDoubleQuote = inSingleQuote ? inDoubleQuote : !inDoubleQuote;
         if (block[index] === "'")
           inSingleQuote = inDoubleQuote ? inSingleQuote : !inSingleQuote;
-        index += 1;
-        continue;
       } else if (inQuote() || block[index] === ' ') {
         index += 1;
         continue;
@@ -216,7 +187,6 @@ export class Tree {
           (index !== 0 &&
             ['||', '&&', '=='].includes(block[index - 1] + block[index])))
       ) {
-        Logger.debug('found operator in string at index ', index);
         const isBooleanOperator =
           index !== 0 &&
           ['||', '&&', '=='].includes(block[index - 1] + block[index]);
@@ -245,7 +215,7 @@ export class Tree {
     }
     if (
       children.length >= 2 &&
-      ['+', '-', '/', '*', '<', '>', '||', '&&'].some((operator) =>
+      ['+', '-', '/', '*', '<', '>', '||', '&&', '=='].some((operator) =>
         children[children.length - 1].startsWith(operator)
       )
     ) {
