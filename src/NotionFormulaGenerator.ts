@@ -16,6 +16,8 @@ import {
   Property,
   NotionPerson,
 } from './model';
+import { Logger } from './helpers/logger';
+import { DepthTracker } from './helpers/depthTracker';
 
 export abstract class NotionFormulaGenerator {
   tree!: Tree;
@@ -97,6 +99,7 @@ export abstract class NotionFormulaGenerator {
   }
 
   private static catchFallThroughElse(formulaBody: string): string {
+    Logger.debug('looking for fallthrough - body: ', formulaBody);
     let toRet = '';
     const min = (index: number) => Math.min(index, formulaBody.length - 1);
     const startOfElseBlock = (index: number) =>
@@ -108,37 +111,51 @@ export abstract class NotionFormulaGenerator {
       formulaBody.substring(min(index), min(index + 3)) === 'if(';
 
     let inElseBlock = false;
-    const findNextindex = (index: number) => {
+    let currentParenthesesDepth = 0;
+
+    const findNextIndex = (tracker: DepthTracker) => {
       while (
-        !['{', '}'].includes(formulaBody[index]) &&
-        index < formulaBody.length
-      ) {
-        index++;
-      }
-      return index;
+        (!['{', '}'].includes(tracker.currChar) || tracker.inQuote) &&
+        currentParenthesesDepth <= tracker.parenthesesDepth &&
+        tracker.inc()
+      ) {}
     };
 
-    let i = 0;
-    while (i < formulaBody.length) {
-      const char = formulaBody[i];
-      toRet += char;
-      if (char === '}') {
+    const tracker = new DepthTracker(formulaBody);
+
+    while (tracker.inc()) {
+      if (
+        (!tracker.inQuote || ['"', "'"].includes(tracker.currChar)) &&
+        tracker.lastChar === '}'
+      ) {
         if (
           !inElseBlock &&
-          !isStartOfLogic(i + 1) &&
-          i !== formulaBody.length - 1 &&
-          [char, formulaBody[min(i + 1)]].every((v) => ![')', ','].includes(v))
+          !isStartOfLogic(tracker.index) &&
+          tracker.currChar !== ')'
         ) {
-          const newIndex = findNextindex(i + 1);
-          if (formulaBody.substring(i + 1, newIndex))
-            toRet += `else{${formulaBody.substring(i + 1, newIndex)}}`;
-          i = newIndex;
-          continue;
+          Logger.debug(
+            'detected possible fallthrough - ',
+            tracker.str.slice(tracker.index)
+          );
+          const bottomIndex = tracker.index;
+
+          findNextIndex(tracker);
+          if (bottomIndex !== tracker.index) {
+            const elseStatement = formulaBody.substring(
+              bottomIndex,
+              tracker.index
+            );
+
+            Logger.debug('fallthrough if detected - ', elseStatement);
+            toRet += `else{${elseStatement}}`;
+          }
         }
-        inElseBlock = startOfElseBlock(i);
+        inElseBlock = startOfElseBlock(tracker.index);
       }
-      i++;
+      toRet += tracker.currChar;
+      currentParenthesesDepth = tracker.parenthesesDepth;
     }
+    Logger.debug('after catchFallThroughElse, returning: ', toRet);
     return toRet;
   }
 
@@ -149,30 +166,21 @@ export abstract class NotionFormulaGenerator {
    * @returns the completed formula for the step
    */
   private build(node: Node): string {
-    let myFormula = '';
-    switch (node?.type) {
+    switch (node.type) {
       case NodeType.Logic:
-        myFormula = `${node.nose}if(${this.build(node.logicChild)},${this.build(
+        return `if(${this.build(node.logicChild)},${this.build(
           node.trueChild
-        )},${this.build(node.falseChild)})${node.tail}`;
-        break;
+        )},${this.build(node.falseChild)})`;
       case NodeType.Return:
-        myFormula = node.statement;
-        break;
+        return node.statement;
       case NodeType.Wrapper:
-        myFormula = node.children
-          .map((child) => {
-            const idx = node.rawStatement.indexOf('()') + 1;
-            const statement = node.rawStatement.substring(0, idx);
-            return `${statement}(${this.build(child)}))`;
-          })
-          .join('');
-        break;
+        return `${node.statement.substring(
+          0,
+          node.statement.indexOf('()') + 1
+        )}${node.children.map((child) => this.build(child)).join('')})`;
       case NodeType.Combination:
-        myFormula = node.children.map((child) => this.build(child)).join('');
-        break;
+        return node.children.map((child) => this.build(child)).join('');
     }
-    return myFormula;
   }
 
   private buildDbProps(): Record<string, Property> {
@@ -184,7 +192,6 @@ export abstract class NotionFormulaGenerator {
         validPropertyTypes.includes(thisObj[key].constructor?.name)
       )
       .forEach((key) => (dbObj[key] = thisObj[key]));
-    console.log(dbObj);
     return dbObj;
   }
 

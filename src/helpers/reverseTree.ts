@@ -1,7 +1,7 @@
 import { Tree } from './tree';
 import { Node } from './node';
 import { NodeType } from '../model';
-import { parseCallbackStatement } from './helpers';
+import { getCombinationNodeChildren } from './helpers';
 import { Logger } from './logger';
 
 /**
@@ -61,11 +61,11 @@ export class ReverseTree extends Tree {
   }
 
   handleCallback(parent: Node, block: string) {
-    // calback case
+    // callback case
     // I don't think that we can handle more complex (i.e. nested) callbacks...
     // perhaps I'll find a case that I think is doable and try to implement a solution but I doubt it's really feasible.
     // IMO this is good enough
-    parent.rawStatement = parent!.rawStatement.slice(0, -1) + block + ')';
+    parent.statement = parent.statement.slice(0, -1) + block + ')';
     parent.type = NodeType.Return;
     Logger.debug('updated parent with callback: ', parent.statement);
     return;
@@ -108,11 +108,14 @@ export class ReverseTree extends Tree {
     block = block.trim();
     Logger.debug('DFP iteration with block: ', block);
     if (block.startsWith('(index, current) =>')) {
-      this.handleCallback(parent!, block);
+      if (!parent) {
+        throw Error('no parent defined in dfp loop but callback spotted');
+      }
+      this.handleCallback(parent, block);
       return;
     }
     // check for combination nodes
-    const children = this.getCombinationNodeChildren(block);
+    const children = getCombinationNodeChildren(block);
     if (
       children.length > 2 &&
       children.some((child) => child.includes('if('))

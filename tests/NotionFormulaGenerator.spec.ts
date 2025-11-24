@@ -63,6 +63,21 @@ describe('notionFormulaGenerator', () => {
             const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))';
             expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))')
         });
+
+        it('should handle parentheses in fallthrough blocks', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}e()))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{e()}))')
+        });
+
+        it('should handle string returns in fallthrough blocks', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}"hello"))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{"hello"}))')
+        });
+
+        it('should handle open parentheses as the first char in a fall through', () => {
+            const inp = 'if(this.status.value=="Done"||this.blocked.value){7/2}((this.round(this.difficulty.value+100/(this.completionPercent.value+1))/2)*(this.log2(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)/(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(this.status.value=="Done"||this.blocked.value){7/2}else{((this.round(this.difficulty.value+100/(this.completionPercent.value+1))/2)*(this.log2(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)/(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)))}')
+        });
     });
 
     describe('base functionality', () => {
@@ -112,10 +127,13 @@ describe('notionFormulaGenerator', () => {
                 const t = new FunctionTestClass();
                 const result = t.compile();
                 expect(t.tree.root.logicChild.statement).toEqual('format(prop("test 1")*(2))==prop("test 2")');
-                expect(t.tree.root.trueChild.statement).toEqual('2');
+                expect(t.tree.root.trueChild.statement).toEqual('()');
+                expect(t.tree.root.trueChild.type).toEqual(Model.NodeType.Wrapper);
+                expect(t.tree.root.trueChild.children).toHaveLength(1);
+                expect(t.tree.root.trueChild.children[0].statement).toEqual('2');
             });
 
-            it('should replace nested function calls', () => {
+            it('should replace nested function calls and wrap them in parentheses', () => {
                 class FunctionTestClassWithNests extends NotionFormulaGenerator {
                     x = new Model.Number('test 1');
                     y = new Model.Text('test 2');
@@ -139,9 +157,13 @@ describe('notionFormulaGenerator', () => {
                     }
                 }
                 const t = new FunctionTestClassWithNests();
-                t.compile();
+                const result = t.compile();
                 expect(t.tree.root.logicChild.statement).toEqual('format(prop("test 1")*(2*2))==prop("test 2")');
-                expect(t.tree.root.trueChild.statement).toEqual('(2)');
+                expect(t.tree.root.trueChild.statement).toEqual('()');
+                expect(t.tree.root.trueChild.type).toEqual(Model.NodeType.Wrapper);
+                expect(t.tree.root.trueChild.children).toHaveLength(1);
+                expect(t.tree.root.trueChild.children[0].statement).toEqual('2');
+                expect(result).toEqual('if(format(prop("test 1")*(2*2))==prop("test 2"),(2),if(((2)*prop("test 1"))>1,(2)*prop("test 1"),0))')
             });
         });
 
@@ -279,7 +301,6 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            console.log(result);
             expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(dateBetween(prop("Due date"),now(),"days")<=0,100,if(prop("Status")=="Not started",(prop("Difficulty"))*(pi()/dateBetween(dateAdd(prop("Due date"),1,"days"),now(),"days")),dateBetween(prop("Last worked on"),now(),"days")*(prop("Difficulty")/(100+e())+e()))))`)
         });
 
@@ -448,7 +469,7 @@ describe('notionFormulaGenerator', () => {
         });
 
         describe('combination nodes', () => {
-            it.only('should allow arithmetic expressions between function calls', () => {
+            it('should allow arithmetic expressions between function calls', () => {
                 class TestClass extends NotionFormulaGenerator {
                     public status = new Model.Select('Status');
                     formula() {
@@ -476,13 +497,12 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                console.log(result);
-                expect(result).toEqual(`if(prop("Status")=="Done",1,2)+if(prop("Status")!="Done",3,4)`);
+                expect(result).toEqual(`(if(prop("Status")=="Done",1,2))+(if(prop("Status")!="Done",3,4))`);
             });
         });
 
-        describe('tails and noses', () => {
-            it('should allow arithmetic expressions (tails) outside of wrapper function call', () => {
+        describe('simple combinations', () => {
+            it('should allow arithmetic expressions outside of wrapper function call', () => {
                 class TestClass extends NotionFormulaGenerator {
                     public status = new Model.Select('Status');
                     public blocked = new Model.Checkbox('Blocked');
@@ -504,7 +524,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)*100)/100`);
+                expect(result).toEqual(`round((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))*100)/100`);
             });
     
             it('should allow arithmetic expressions (noses) before calling functions', () => {
@@ -529,7 +549,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual(`3+if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)`);
+                expect(result).toEqual(`3+(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
             });
     
             it('should allow noses before multiple function calls', () => {
@@ -553,7 +573,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual(`1+if(prop("Status")=="Done",1,2)+if(prop("Status")=="Done",1,2)`);
+                expect(result).toEqual(`1+(if(prop("Status")=="Done",1,2))+(if(prop("Status")=="Done",1,2))`);
             });
     
             it('should allow tails and noses before and after multiple function calls', () => {
@@ -577,7 +597,7 @@ describe('notionFormulaGenerator', () => {
                 }
                 const tc = new TestClass();
                 const result = tc.compile();
-                expect(result).toEqual(`1+if(prop("Status")=="Done",1,2)+if(prop("Status")=="Done",1,2)+3`);
+                expect(result).toEqual(`1+(if(prop("Status")=="Done",1,2))+(if(prop("Status")=="Done",1,2))+3`);
             });    
         });
         
@@ -723,7 +743,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))`);
+            expect(result).toEqual(`round((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)))`);
         });
 
         it('should allow nested wrapper function call with no logic', () => {
@@ -859,7 +879,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round(abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)-10)*100)/100`);
+            expect(result).toEqual(`round(abs((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))-10)*100)/100`);
         });
 
         it('should work for extremely complex functions', () => {

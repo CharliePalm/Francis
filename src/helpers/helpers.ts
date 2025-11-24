@@ -1,73 +1,20 @@
 import format from 'prettier-eslint';
+import { Logger } from './logger';
+import { DepthTracker } from './depthTracker';
 
 /**
- * returns the first instance of logic enclosed in brackets or parentheses
- * @param block - the block to parse
- * @returns whatever is in between () and {} blocks
+ * Gets the arguments to a notion logic function.
+ * @param block a typescript block like if(logic){trueCase}else{falseCase}
+ * @returns the different parts of the logic function in the form [logic, true, false]
  */
-export function getStatement(block: string): string | undefined {
-  let [index, depth] = [block.indexOf('if(') + 3, 1];
-  // wrapper function case:
-  if (block.startsWith('this.') && index !== 2) {
-    return block;
-  }
-
-  // logic case
-  if (index !== 2) {
-    // index === 2 means that 'if(' was not present in the string
-    const startingIndex = index;
-    while (index < block.length) {
-      depth += block[index] === '(' ? 1 : block[index] === ')' ? -1 : 0;
-      if (depth === 0) {
-        break;
-      }
-      index += 1;
-    }
-    return block.substring(startingIndex, index);
-  }
-  // return case
-  return undefined;
-}
-
-/**
- * gets the content of the block, including further logic
- * @param block
- * @param start
- * @returns [true block, false block]
- */
-export function getBlockContent(
-  block: string,
-  start = -1
-): [string, string | undefined] {
-  start = start !== -1 ? start : getEndOfIfBlockIndex(block);
-  // base case: block is a return statement
-  if (start === -1) {
-    return [block.substring(0, block.lastIndexOf('}')), undefined];
-  }
-  let depth = 0;
-  let index = start;
-  while (index < block.length) {
-    depth += block[index] === '{' ? 1 : block[index] === '}' ? -1 : 0;
-    // first index should always increment depth so if depth is 0 we return
-    if (depth === 0) {
-      break;
-    }
-    index++;
-  }
-  return [
-    block.substring(start + 1, index),
-    index + 1 !== block.length ? getFalseBlockContent(block, index) : undefined,
-  ];
-}
-
 export function getLogicChildren(block: string) {
   if (!block.startsWith('if(') || !block.endsWith('}')) {
     throw new Error('getLogicChildren called with non logic block - ' + block);
   }
   let index = block.indexOf('(') + 1; // start after if( or elseIf call
   let depth = 1; // because we start right after the if
-  let depthChars = ['(', '{'];
-  let deDepthChars = [')', '}'];
+  const depthChars = ['(', '{'];
+  const deDepthChars = [')', '}'];
   let bottomIdx = index;
   const blocks = new Array(3);
   let blockIdx = 0;
@@ -102,57 +49,6 @@ export function getLogicChildren(block: string) {
   throw new Error(
     `ran out of while loop while looking for logic children for block - ${block}, found children: ${blocks}`
   );
-}
-
-export function getEndOfIfBlockIndex(block: string): number {
-  let idx = block.indexOf('if(') + 3;
-  let depth = 1;
-  while (idx < block.length) {
-    depth += block[idx] === '(' ? 1 : block[idx] === ')' ? -1 : 0;
-    if (depth === 0 && block[idx] === '{') {
-      return idx;
-    }
-    idx += 1;
-  }
-  return -1;
-}
-
-export function getNestedIfTail(block: string): string {
-  return block.substring(block.lastIndexOf(')') + 1, block.length);
-}
-
-/**
- * gets the false content of the block, provided the index of where the true block ended
- * @param block the entire block, featuring both true and false content
- * @param index the index where the false block ended
- * @returns the parsed false block
- */
-export function getFalseBlockContent(
-  block: string,
-  index: number
-): string | undefined {
-  const falseBlock = block.substring(index + 1, block.length);
-  if (falseBlock.startsWith('else')) {
-    const blockContinues = falseBlock.startsWith('elseif');
-    // we need to get the logic in the if () part of the "else if" block if the block continues
-    const start = blockContinues ? 4 : falseBlock.indexOf('{') + 1;
-    const endModifier =
-      blockContinues || falseBlock.lastIndexOf('}') !== falseBlock.length - 1
-        ? 0
-        : 1;
-    return falseBlock.substring(start, falseBlock.length - endModifier);
-    // return falseBlock.substring(start, falseBlock.lastIndexOf('}') + (blockContinues ? 1 : 0)); // save the last bracket char if we need to keep parsing this block
-  }
-  throw Error(
-    'fallthrough block detected - not properly replaced with else {}. This is a bug in the code. Block: ' +
-      block
-  );
-  // fall through case
-  // const lastClosedBracketIdx = falseBlock.lastIndexOf('}');
-  // if the last part of the block is the fall through case we got lucky
-  // return lastClosedBracketIdx === -1
-  //   ? falseBlock
-  //   : falseBlock.substring(0, lastClosedBracketIdx);
 }
 
 /**
@@ -212,3 +108,70 @@ export const esLintFormat = (code: string) =>
       parser: 'typescript',
     },
   });
+
+/**
+ * Checks if statement is logic separated by operators
+ * @param block
+ * @returns the split statement
+ */
+export function getCombinationNodeChildren(block: string): string[] {
+  Logger.debug('getting children for statement: ', block);
+
+  // check for combination node:
+  const children: string[] = [];
+  const tracker = new DepthTracker(block);
+  let bottomPtr = 0;
+
+  while (tracker.inc()) {
+    if (
+      tracker.lastChar != ',' &&
+      tracker.depth === 0 &&
+      !tracker.inQuote &&
+      (['+', '-', '/', '*', '<', '>'].includes(tracker.currChar) ||
+        ['||', '&&', '=='].includes(tracker.lastChar + tracker.currChar))
+    ) {
+      const isBooleanOperator = ['||', '&&', '=='].includes(
+        tracker.lastChar + tracker.currChar
+      );
+      if (
+        (isBooleanOperator ? tracker.index - 1 : tracker.index) - bottomPtr >
+        0
+      ) {
+        children.push(
+          block
+            .substring(
+              bottomPtr,
+              isBooleanOperator ? tracker.index - 1 : tracker.index
+            )
+            .trim()
+        );
+
+        const topIndex =
+          tracker.index +
+          (['<', '>'].includes(tracker.currChar) && tracker.nextChar === '='
+            ? 2
+            : 1);
+        children.push(
+          block
+            .substring(
+              isBooleanOperator ? tracker.index - 1 : tracker.index,
+              topIndex
+            )
+            .trim()
+        );
+        bottomPtr = topIndex;
+      }
+    }
+  }
+  if (
+    children.length >= 2 &&
+    ['+', '-', '/', '*', '<', '>', '||', '&&', '=='].some((operator) =>
+      children[children.length - 1].startsWith(operator)
+    )
+  ) {
+    // we have a tail - i.e. there is an operator in the last position of the array and we need to add on the rest of the string
+    children.push(block.substring(bottomPtr, block.length));
+  }
+  Logger.info('returning combination children: ', children);
+  return children;
+}

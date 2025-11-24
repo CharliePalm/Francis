@@ -3,14 +3,8 @@ import { esLintFormat } from './helpers/helpers';
 import { ReverseTree } from './helpers/reverseTree';
 import { Node } from './helpers/node';
 import { lowerCamel, typeMap } from './helpers/utils';
-import { NodeType } from './model';
+import { CodifyProperty, NodeType } from './model';
 import { Logger } from './helpers/logger';
-
-export interface CodifyProperty {
-  name: string;
-  type: string;
-  [key: string]: any;
-}
 
 const HAS_CALLBACK = ['map', 'filter', 'find', 'findIndex', 'some', 'every'];
 const ADD_VALUE_TYPES = ['number'];
@@ -21,7 +15,7 @@ export class NotionFormulaCodifier {
     private properties: Record<string, CodifyProperty>
   ) {}
 
-  wrapperFunctions: Map<string, string> = new Map();
+  wrapperFunctions = new Map<string, string>();
 
   private replaceArithmeticUsage(
     toFind: string,
@@ -118,7 +112,7 @@ export class NotionFormulaCodifier {
         this.replaceArithmeticUsage(property.name, wrappers)
     );
 
-    let rawFormula = `
+    const rawFormula = `
       import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
       import * as Model from './src/model';
       class MyFirstFormula extends NotionFormulaGenerator {
@@ -185,10 +179,11 @@ export class NotionFormulaCodifier {
 
     currentFormula += `${
       currentFormula.endsWith('{') ? 'return ' : ''
-    } ${slicedStatement}this.func${this.wrapperFunctions.size}()${
-      node.tail.replace(')', '') + // this is hacky and I don't know if it actually works but fixes a use case...
-      new Array(slicedStatement.split('(').length - 1).fill(')').join('')
-    }`;
+    } ${slicedStatement}this.func${this.wrapperFunctions.size}()${new Array(
+      slicedStatement.split('(').length - 1
+    )
+      .fill(')')
+      .join('')}`;
 
     Logger.debug('returning wrappers: ', this.wrapperFunctions);
     return currentFormula;
@@ -197,7 +192,7 @@ export class NotionFormulaCodifier {
   build(node: Node, currentFormula = ''): string {
     switch (node?.type) {
       case NodeType.Logic:
-        let logicStatement =
+        const logicStatement =
           node.logicChild.type === NodeType.Logic
             ? this.wrapLogic(node.logicChild, currentFormula)
             : this.build(node.logicChild, currentFormula);
@@ -214,7 +209,6 @@ export class NotionFormulaCodifier {
         currentFormula = this.wrapLogic(node, currentFormula);
         break;
       case NodeType.Combination:
-        currentFormula += node.nose;
         node.wrappedChildren.forEach((child) => {
           currentFormula = this.build(child, currentFormula);
         });
@@ -233,11 +227,11 @@ export class NotionFormulaCodifier {
   }
 
   splitTopLevel(str: string): string[] {
-    let parts = [];
+    const parts = [];
     let depth = 0;
     let current = '';
 
-    for (let char of str) {
+    for (const char of str) {
       if (char === '(') depth++;
       if (char === ')') depth--;
       if (char === ',' && depth === 0) {

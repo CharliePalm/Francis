@@ -369,3 +369,11 @@ export enum NodeType {
   Wrapper = 'Wrapper', // a + fn() + b
   Combination = 'Combination', // a + if(x, y, z) + b
 }
+
+// codify models/interfaces
+
+export interface CodifyProperty {
+  name: string;
+  type: string;
+  [key: string]: object | string;
+}

@@ -1,13 +1,12 @@
 import {
   getCallbackStatement,
-  getEndOfIfBlockIndex,
+  getCombinationNodeChildren,
   getLogicChildren,
-  getStatement,
   parseCallbackStatement,
 } from '../src/helpers/helpers';
 
 describe('helper functions', () => {
-  describe.only('getLogicChildren', () => {
+  describe('getLogicChildren', () => {
     it('should get the content for a single if block', () => {
       expect(getLogicChildren('if(x<y){a+b}else{b-a}')).toEqual([
         'x<y',
@@ -16,7 +15,7 @@ describe('helper functions', () => {
       ]);
     });
 
-    it('should get the content for a singley nested if block', () => {
+    it('should get the content for a singly nested if block', () => {
       expect(
         getLogicChildren(
           'if(x<y){if(y<z){z+1}else{z-1}}else{if(x<y){a+b}else{b-a}}'
@@ -24,7 +23,7 @@ describe('helper functions', () => {
       ).toEqual(['x<y', 'if(y<z){z+1}else{z-1}', 'if(x<y){a+b}else{b-a}']);
     });
 
-    it('should get the content for a doubley nested if block', () => {
+    it('should get the content for a doubly nested if block', () => {
       expect(
         getLogicChildren(
           'if(x<y){if(a>b){if(y<z){z+1}else{z-1}}else{1+1}}else{if(x<y){if(y<z){z+1}else{z-1}}else{if(x<y){a+b}else{b-a}}}'
@@ -94,36 +93,6 @@ describe('helper functions', () => {
     });
   });
 
-  describe('getStatement', () => {
-    it('should return the logic in parentheses for a logical staement', () => {
-      expect(getStatement('if(test===true){do..stuff...here}')).toEqual(
-        'test===true'
-      );
-    });
-
-    it('should return the logic in parentheses for a logical staement when else if is present', () => {
-      expect(getStatement('if(test===true)elseif{do..stuff...here}')).toEqual(
-        'test===true'
-      );
-    });
-
-    it('should return the logic in parentheses for a logical staement when else is present', () => {
-      expect(getStatement('if(test===true)else{do..stuff...here}')).toEqual(
-        'test===true'
-      );
-    });
-
-    it('should return undefined in brackets for a return statement', () => {
-      expect(getStatement('do..stuff...here')).toBeUndefined();
-    });
-
-    it('should return correct statement when provided a nested if', () => {
-      expect(
-        getStatement('if((if(1==1){1}else{2})>1){"hello"}"world"')
-      ).toEqual('(if(1==1){1}else{2})>1');
-    });
-  });
-
   describe('getCallbackStatement', () => {
     it('should get a callback', () => {
       const result = getCallbackStatement(
@@ -178,17 +147,48 @@ describe('helper functions', () => {
     });
   });
 
-  describe('getEndOfIfBlockIndex', () => {
-    it('gets the first index of { after if block', () => {
-      const result = getEndOfIfBlockIndex('if(1==1){"hello"}"world"');
-      expect(result).toEqual(8);
+  describe('getCombinationNodeChildren', () => {
+    it('should correctly get combination node children', () => {
+      const statement = 'if(a>b){1}else{2}+if(b==a){3}else{4}';
+      expect(getCombinationNodeChildren(statement)).toEqual([
+        'if(a>b){1}else{2}',
+        '+',
+        'if(b==a){3}else{4}',
+      ]);
     });
-
-    it('gets the first index of { after if block for nested ifs', () => {
-      const result = getEndOfIfBlockIndex(
-        'if((if(1==1){1}else{2})>1){"hello"}"world"'
-      );
-      expect(result).toEqual(26);
+    it('should correctly get combination node children for multiple children', () => {
+      const statement =
+        'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}';
+      expect(getCombinationNodeChildren(statement)).toEqual([
+        'if(a>b){1}else{2}',
+        '+',
+        'if(b==a){3}else{4}',
+        '-',
+        'if(x-y>b){4}else{5}',
+      ]);
+    });
+    it('should handle one character children at the end of the statement', () => {
+      const statement =
+        'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}+4';
+      expect(getCombinationNodeChildren(statement)).toEqual([
+        'if(a>b){1}else{2}',
+        '+',
+        'if(b==a){3}else{4}',
+        '-',
+        'if(x-y>b){4}else{5}',
+        '+',
+        '4',
+      ]);
+    });
+    it('should properly handle a <= or >= operator', () => {
+      const statement = '1+if(this.myProperty,1,0)>=0';
+      expect(getCombinationNodeChildren(statement)).toEqual([
+        '1',
+        '+',
+        'if(this.myProperty,1,0)',
+        '>=',
+        '0',
+      ]);
     });
   });
 });

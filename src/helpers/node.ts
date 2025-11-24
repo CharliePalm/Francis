@@ -6,20 +6,14 @@ export class Node {
   public falseChild!: Node;
   public logicChild!: Node;
   public wrappedChildren!: Node[];
-  public tail = '';
-  public nose = '';
   public nesting = false;
 
   constructor(
     public type: NodeType,
-    public rawStatement: string,
+    public statement: string,
     public isReverse = false
   ) {
-    rawStatement = rawStatement.trim();
-  }
-
-  public get statement() {
-    return this.nose + this.rawStatement + this.tail;
+    this.statement = statement.trim();
   }
 
   public get children() {
@@ -57,10 +51,6 @@ export class Node {
     this.wrappedChildren.push(child);
   }
 
-  addTail(tail: string) {
-    this.tail = tail;
-  }
-
   // helpers
 
   /**
@@ -68,19 +58,15 @@ export class Node {
    * @param node
    */
   public replaceFunctionsAndOperators(): void {
-    if (!this) return;
     // replace all uses of this. with '', && with and, || with or, and ! with not when not followed by an equals sign
     const replace = (str: string) =>
       str
         ?.replace(/this\./g, '')
         .replace(/&&/g, ' and ')
         .replace(/\|\|/g, ' or ')
-        .replace(/!(?![=])/g, ' not ')
-        // we shouldn't have any instances of brackets, but... it's a failsafe
-        .replace('}', ')');
-    this.rawStatement = replace(this.rawStatement);
-    this.nose = replace(this.nose);
-    this.tail = replace(this.tail);
+        .replace(/!(?![=])(?=(?:[^"]*"[^"]*")*[^"]*$)/g, ' not ');
+
+    this.statement = replace(this.statement);
   }
 
   /**
@@ -89,20 +75,18 @@ export class Node {
   public replaceProperties(propertyMap: Record<string, Property>): void {
     if (!this) return;
     // replace .value
-    this.rawStatement = this.rawStatement?.replace(
+    this.statement = this.statement?.replace(
       /this\.(\w+)\.value/g,
       (_, property) => `prop("${propertyMap[property]?.propertyName}")`
     );
     // replace object method calls - if the property is a DB property then replace it, otherwise it's a builtin function call so just use it
-    this.rawStatement = this.rawStatement?.replace(
-      /this\.(\w+)/g,
-      (_, property) =>
-        propertyMap[property]
-          ? `prop("${propertyMap[property]?.propertyName}")`
-          : property
+    this.statement = this.statement?.replace(/this\.(\w+)/g, (_, property) =>
+      propertyMap[property]
+        ? `prop("${propertyMap[property]?.propertyName}")`
+        : property
     );
     // remove all leftover .values
-    this.rawStatement = this.rawStatement?.replace(/\.value/g, '');
+    this.statement = this.statement?.replace(/\.value/g, '');
 
     this.replaceFunctionsAndOperators();
     this.replaceCallbacks();
@@ -116,10 +100,7 @@ export class Node {
       const callbacks = getCallbackStatement(this.statement);
       callbacks.forEach((callback) => {
         const parsedCallback = parseCallbackStatement(callback);
-        this.rawStatement = this.rawStatement?.replace(
-          callback,
-          parsedCallback
-        );
+        this.statement = this.statement?.replace(callback, parsedCallback);
       });
     }
   }

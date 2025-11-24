@@ -1,3 +1,3 @@
 export { NotionFormulaGenerator } from './NotionFormulaGenerator';
 export * as Model from './model';
-export { codify } from './NotionFormulaCodifier';
+export { NotionFormulaCodifier } from './NotionFormulaCodifier';

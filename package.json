@@ -24,8 +24,8 @@
     "typescript-eslint": "^8.6.0"
   },
   "scripts": {
-    "test": "jest",
-    "lint": "npx eslint src/*",
+    "test": "jest --bail",
+    "lint": "eslint src/*",
     "build": "tsc",
     "check-exports": "attw --pack .",
     "local-release": "changeset version && changeset publish"

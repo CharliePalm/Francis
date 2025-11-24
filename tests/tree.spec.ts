@@ -22,7 +22,7 @@ describe('buildTree', () => {
       new Tree(formula);
     } catch (e: any) {
       expect(e.message).toEqual(
-        'error processing input: unexpected blank false block from true block: dostuff'
+        'improperly formatted block classified as return node - there are still brackets present: }'
       );
     }
   });
@@ -86,54 +86,5 @@ describe('buildTree', () => {
     expect(fc?.trueChild?.children).toHaveLength(0);
     expect(fc?.falseChild?.statement).toEqual('b-a');
     expect(fc?.falseChild?.children).toHaveLength(0);
-  });
-
-  describe('getCombinationNodeChildren', () => {
-    let tree: Tree;
-    beforeEach(() => {
-      tree = new Tree();
-    });
-    it('should correctly get combination node children', () => {
-      const statement = 'if(a>b){1}else{2}+if(b==a){3}else{4}';
-      expect(tree['getCombinationNodeChildren'](statement)).toEqual([
-        'if(a>b){1}else{2}',
-        '+',
-        'if(b==a){3}else{4}',
-      ]);
-    });
-    it('should correctly get combination node children for multiple children', () => {
-      const statement =
-        'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}';
-      expect(tree['getCombinationNodeChildren'](statement)).toEqual([
-        'if(a>b){1}else{2}',
-        '+',
-        'if(b==a){3}else{4}',
-        '-',
-        'if(x-y>b){4}else{5}',
-      ]);
-    });
-    it('should handle one character children at the end of the statement', () => {
-      const statement =
-        'if(a>b){1}else{2}+if(b==a){3}else{4}-if(x-y>b){4}else{5}+4';
-      expect(tree['getCombinationNodeChildren'](statement)).toEqual([
-        'if(a>b){1}else{2}',
-        '+',
-        'if(b==a){3}else{4}',
-        '-',
-        'if(x-y>b){4}else{5}',
-        '+',
-        '4',
-      ]);
-    });
-    it('should properly handle a <= or >= operator', () => {
-      const statement = '1+if(this.myProperty,1,0)>=0';
-      expect(tree['getCombinationNodeChildren'](statement)).toEqual([
-        '1',
-        '+',
-        'if(this.myProperty,1,0)',
-        '>=',
-        '0',
-      ]);
-    });
   });
 });

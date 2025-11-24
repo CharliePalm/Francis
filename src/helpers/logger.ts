@@ -9,21 +9,19 @@ const levelMap = new Map([
   [LogLevel.Debug, 'DEBUG'],
 ]);
 
-const CURRENT_LOG_LEVEL = LogLevel.Debug;
+const CURRENT_LOG_LEVEL = LogLevel.Error;
 export class Logger {
-  static _log(level: LogLevel, message: string, params?: any) {
-    if (CURRENT_LOG_LEVEL >= level) {
-      console.log(`[${levelMap.get(level)}]: ${message}\n`, params ?? '');
-      console.log();
-    }
+  static _log(level: LogLevel, message: string, params?: object | string) {
+    CURRENT_LOG_LEVEL >= level &&
+      console.log(`[${levelMap.get(level)}]: ${message}\n`, params ?? '', '\n');
   }
-  static info(message: string, params?: any) {
+  static info(message: string, params?: object | string) {
     Logger._log(LogLevel.Info, message, params);
   }
-  static error(message: string, params?: any) {
+  static error(message: string, params?: object | string) {
     Logger._log(LogLevel.Error, message, params);
   }
-  static debug(message: string, params?: any) {
+  static debug(message: string, params?: object | string) {
     Logger._log(LogLevel.Debug, message, params);
   }
 }

@@ -1,9 +1,7 @@
-import {
-  NotionFormulaCodifier,
-  CodifyProperty,
-} from '../src/NotionFormulaCodifier';
+import { NotionFormulaCodifier } from '../src/NotionFormulaCodifier';
 import { esLintFormat } from '../src/helpers/helpers';
 import { typeMap } from '../src/helpers/utils';
+import { CodifyProperty } from '../src/model';
 
 const getBasic = (innerFormula: string) =>
   esLintFormat(`
@@ -85,6 +83,10 @@ describe('NotionFormulaCodifier', () => {
         'this.myProperty.map((index, current) => this.format(current))'
       );
     });
+  });
+
+  xdescribe('catchFallThroughElse', () => {
+    it('should replace a fallthrough else in a function call', () => {});
   });
 
   describe('reduceWrappers', () => {

@@ -13,8 +13,8 @@ class MyFirstFormula extends NotionFormulaGenerator {
 
   formula() {
     const meleeAttackId = '1';
-    const rangedId = '2';
-    const spellAttackId = '3';
+    const rangedId = '3';
+    const spellAttackId = '2';
     const spellSaveId = '4';
     const initiativeId = '5';
 
@@ -102,7 +102,8 @@ class MyFirstFormula extends NotionFormulaGenerator {
   }
 
   isCaster() {
-    return this.getClass() !== 'Barbarian';
+    const defaultClass = 'Pick your class here!';
+    return this.getClass() !== 'Barbarian' && this.getClass() !== defaultClass;
   }
 
   getSpellAbilityMod() {
