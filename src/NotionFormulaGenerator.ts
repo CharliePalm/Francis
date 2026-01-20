@@ -304,6 +304,9 @@ export abstract class NotionFormulaGenerator {
   min(...values: number[]): number {
     return 0;
   }
+  sum(value: NotionList | number, ...values: number[]): number {
+    return 0;
+  }
   round(value: number): number {
     return 0;
   }

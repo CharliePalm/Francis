@@ -4,17 +4,17 @@ import * as Model from '../src/model';
 class MyFirstFormula extends NotionFormulaGenerator {
   // define DB properties here:
   public amount = new Model.Number('Amount');
-  public class = new Model.Relation('Class');
-  public level = new Model.Relation('Level');
+  public classes = new Model.Relation('Classes');
   public skills = new Model.Relation('Skills');
   public Name = new Model.Text('Name');
   public otherBonus = new Model.Number('Other Bonus');
   public myId = new Model.ID('id');
+  public _level = new Model.Formula<number>('_level');
 
   formula() {
     const meleeAttackId = '1';
-    const rangedId = '3';
     const spellAttackId = '2';
+    const rangedId = '3';
     const spellSaveId = '4';
     const initiativeId = '5';
 
@@ -142,7 +142,9 @@ class MyFirstFormula extends NotionFormulaGenerator {
   }
 
   getClass() {
-    return this.class.at(0)._valueAccessor<Model.NotionString>('Value').value;
+    return this.classes
+      .find((current) => current._valueAccessor<boolean>('isHighestLevel'))
+      ._valueAccessor('Class');
   }
 
   getProficiencyBonus(): number {

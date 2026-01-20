@@ -124,7 +124,11 @@ export class ReverseTree extends Tree {
       parent = this.add('', parent, NodeType.Combination);
       this.combinationHandler(children, parent);
       return;
-    } else if (block.startsWith('(') && block.endsWith(')')) {
+    } else if (
+      block.startsWith('(') &&
+      block.endsWith(')') &&
+      children.length === 0
+    ) {
       // if we have parentheses on both sides and no combination, that means these parentheses are redundant, slice 'em off and retry
       block = block.slice(1, -1);
       this.dfp(block, parent, side);

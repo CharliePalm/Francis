@@ -1,26 +1,43 @@
 import { NotionFormulaCodifier } from './src/NotionFormulaCodifier';
 const formula =
-  '(if((((toNumber(join(map(prop("Base Modifier"), format(current)), ",")) + prop("Other Bonus")) + (if(prop("Proficient"), toNumber(join(map(prop("Proficiency Bonus"), format(current)), ",")), 0))) >= 0), "+", "") + format((toNumber(join(map(prop("Base Modifier"), format(current)), ",")) + prop("Other Bonus")) + (if(prop("Proficient"), toNumber(join(map(prop("Proficiency Bonus"), format(current)), ",")), 0))))';
+  'if(prop("Tags")=="PROF",("+"+format(ceil(toNumber(prop("ClassLevel").at(0).prop("Level"))/4)+1)),((prop("Amount")>=10?"+":"")+format(floor((prop("Amount")-10)/2))))';
 const result = new NotionFormulaCodifier(formula, {
-  ['Base Modifier']: {
-    name: 'baseModifier',
-    type: 'rollup',
+  ['Amount']: {
+    name: 'Amount',
+    type: 'number',
     rollup: {},
   },
-  ['Other Bonus']: {
-    name: 'otherBonus',
-    type: 'number',
+  ['Tags']: {
+    name: 'Tags',
+    type: 'select',
     number: {},
   },
-  Proficient: {
-    name: 'proficient',
-    type: 'checkbox',
+  ['ClassLevel']: {
+    name: 'ClassLevel',
+    type: 'relation',
     checkbox: {},
-  },
-  'Proficiency Bonus': {
-    name: 'proficiencyBonus',
-    type: 'rollup',
   },
 })
   .decompile()
   .then((res) => console.log(res));
+
+import { NotionFormulaGenerator } from './src/NotionFormulaGenerator';
+import * as Model from './src/model';
+class MyFirstFormula extends NotionFormulaGenerator {
+  public amount = new Model.Number('Amount');
+  public tags = new Model.Select('Tags');
+  public level = new Model.Rollup<Model.NotionNumber>('_level');
+
+  formula() {
+    if (this.tags.value == 'PROF') {
+      return '+' + this.format(this.ceil(this.level.value.value / 4) + 1);
+    } else {
+      return (
+        (this.amount.value >= 10 ? '+' : '') +
+        this.format(this.floor((this.amount.value - 10) / 2))
+      );
+    }
+  }
+}
+
+console.log(new MyFirstFormula().compile());

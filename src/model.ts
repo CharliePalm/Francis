@@ -35,19 +35,21 @@ export class NotionList<T = NotionObject> extends Property {
   ): NotionList<any> {
     return this;
   }
-  filter(callback: (current: T) => boolean): NotionList<T> {
+  filter(callback: (current: T, index: number) => boolean): NotionList<T> {
     return this;
   }
-  find(callback: (current: T) => boolean): T {
+  find(callback: (current: T, index: number) => boolean): T {
     return this.value;
   }
-  findIndex(callback: (current: T) => boolean): NotionNumberType {
+  findIndex(
+    callback: (current: T, index: number) => boolean
+  ): NotionNumberType {
     return 0;
   }
-  some(callback: (current: T) => boolean): boolean {
+  some(callback: (current: T, index: number) => boolean): boolean {
     return true;
   }
-  every(callback: (current: T) => boolean): boolean {
+  every(callback: (current: T, index: number) => boolean): boolean {
     return true;
   }
   at(index: NotionNumberType): T {
