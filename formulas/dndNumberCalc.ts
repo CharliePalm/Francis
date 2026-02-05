@@ -1,4 +1,4 @@
-// This is how the Import Numbers! table is calculated in my D&D character sheet!
+// This is how the Important Numbers! table is calculated in my D&D character sheet!
 // You can get the template here for free :) https://www.notion.so/marketplace/templates/dnd-5e-fully-functional-character-sheet
 
 import { NotionFormulaGenerator } from '../src/NotionFormulaGenerator';
