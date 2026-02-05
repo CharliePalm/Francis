@@ -43,49 +43,47 @@ Then paste the following into your tsconfig.json
 
 ```json
 {
-    "compilerOptions": {
-        "target": "ES2020",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true,
-        "strict": true,
-        "verbatimModuleSyntax": false
-    },
-    "ts-node": {
-        "esm": true
-    }
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "verbatimModuleSyntax": false
+  },
+  "ts-node": {
+    "esm": true
+  }
 }
 ```
 
 Then create a MyFirstFormula.ts file that looks something like this:
 
 ```typescript
-import { NotionFormulaGenerator, Model } from 'notion-formula-generator'
+import { NotionFormulaGenerator, Model } from 'notion-formula-generator';
 class MyFirstFormula extends NotionFormulaGenerator {
-    // define DB properties here:
-    public myProperty = new Model.Checkbox('myProperty name');
+  // define DB properties here:
+  public myProperty = new Model.Checkbox('myProperty name');
 
-    // fill in your formula function here:
-    formula() {
-        if (this.myProperty) {
-            return 1;
-        }
-        return 0;
+  // fill in your formula function here:
+  formula() {
+    if (this.myProperty) {
+      return 1;
     }
-    
-    // any frequently re-used logic can be compartmentalized into functions
-    nameOfFunction() {
-        return 0;
-    }
+    return 0;
+  }
 
-    // If you want to use helper functions, define them here like this
-    public buildFunctionMap(): Map<string, string> {
-        return new Map([
-            ['nameOfFunction', this.nameOfFunction.toString()],
-        ]);
-    }
+  // any frequently re-used logic can be compartmentalized into functions
+  nameOfFunction() {
+    return 0;
+  }
+
+  // If you want to use helper functions, define them here like this
+  public buildFunctionMap(): Map<string, string> {
+    return new Map([['nameOfFunction', this.nameOfFunction.toString()]]);
+  }
 }
 
 const formula = new MyFirstFormula();
@@ -114,7 +112,7 @@ npm i
 Open the provided myFirstFormula file, and run
 
 ```sh
-npx ts-node myFirstFormula.ts
+npx ts-node examples/myFirstFormula.ts
 ```
 
 you should see the result:
@@ -131,7 +129,7 @@ DB properties should be defined as they are in the example. It doesn't matter wh
 
 ```typescript
 class Formula extends NotionFormulaGenerator {
-    public test = new Model.Number('test2')
+  public test = new Model.Number('test2');
 }
 ```
 
@@ -188,27 +186,13 @@ Which will lead to the same result, just with ternaries instead of the notion if
 
 Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
-## New in v2.0.4
+## New in v3.0.0
 
-A ton of bugs have been fixed and functionality added, including:
+Francis now has the ability to translate Notion formula to NotionFormulaGenerator objects! This has been a thorn in my side ever since I started Francis a few years back.
 
-1. Francis now supports calling helper functions in logic statements, i.e. if (myFunction() == 1)
-2. Francis can handle when multiple helper functions are separated by operators, i.e. myFunction() + myFunction()
-3. Added a NotionObject type with a _valueAccessor method that can be typed generically to access relation properties
+This works much in the same way as Francis - see examples/codifyExample.ts.
 
-More on the above: if you have a relation and are trying to access a property from a row in your relation, you can do so as such:
-
-```txt
-this.myRelation.find((r) => r.value == 'test')._valueAccessor('MyPropertyName').value
-```
-
-which translates to:
-
-```txt
-prop("myRelation").find(current.value == 'test').prop("myPropertyName")
-```
-
-Furthermore, relations and rollups are automatically typed as being NotionObjects, but you can override this if your relation/rollup is something else.
+I'm intending on updating Francis with the ability to read and write to Notion DBs in order to make this whole process easier. That's why the input type of codify is so strange. This will all be a class in the future, but I'm releasing the functionality a bit preemptively in case it will be useful to anyone.
 
 ## FAQ
 
