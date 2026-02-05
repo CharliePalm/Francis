@@ -12,8 +12,9 @@ const levelMap = new Map([
 const CURRENT_LOG_LEVEL = LogLevel.Error;
 export class Logger {
   static _log(level: LogLevel, message: string, params?: object | string) {
-    CURRENT_LOG_LEVEL >= level &&
+    if (CURRENT_LOG_LEVEL >= level) {
       console.log(`[${levelMap.get(level)}]: ${message}\n`, params ?? '', '\n');
+    }
   }
   static info(message: string, params?: object | string) {
     Logger._log(LogLevel.Info, message, params);

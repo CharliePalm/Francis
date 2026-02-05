@@ -1,4 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// This is how the Import Numbers! table is calculated in my D&D character sheet!
+// You can get the template here for free :) https://www.notion.so/marketplace/templates/dnd-5e-fully-functional-character-sheet
+
 import { NotionFormulaGenerator } from '../src/NotionFormulaGenerator';
 import * as Model from '../src/model';
 class MyFirstFormula extends NotionFormulaGenerator {
@@ -14,7 +16,7 @@ class MyFirstFormula extends NotionFormulaGenerator {
   formula() {
     const meleeAttackId = '1';
     const spellAttackId = '2';
-    const rangedId = '3';
+    const rangedId = '3'; // we don't actually use this as it's the else case but leaving here for my sake
     const spellSaveId = '4';
     const initiativeId = '5';
 

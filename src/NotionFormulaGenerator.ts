@@ -118,6 +118,7 @@ export abstract class NotionFormulaGenerator {
         (!['{', '}'].includes(tracker.currChar) || tracker.inQuote) &&
         currentParenthesesDepth <= tracker.parenthesesDepth &&
         tracker.inc()
+        // eslint-disable-next-line no-empty
       ) {}
     };
 

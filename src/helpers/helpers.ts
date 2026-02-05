@@ -33,6 +33,8 @@ export function getLogicChildren(block: string) {
       blocks[blockIdx++] = block.substring(bottomIdx, tracker.index);
       // getting the false case
       const currDepth = tracker.depth;
+
+      // eslint-disable-next-line no-empty
       while (currDepth === tracker.depth && tracker.inc()) {}
       // add 'if' if it was present (i.e. in an elseif block)
       const prefix =
