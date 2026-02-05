@@ -1,6 +1,6 @@
 # Francis (Notion Formula Generator)
 
-[![npm](https://img.shields.io/badge/npm-v2.0.5-blue)](https://www.npmjs.com/package/notion-formula-generator)
+[![npm](https://img.shields.io/badge/npm-v3.0.0-blue)](https://www.npmjs.com/package/notion-formula-generator)
 [![License](https://img.shields.io/badge/license-MIT-purple)](https://opensource.org/licenses/MIT)
 [![Author](https://img.shields.io/badge/author%20-%20Charlie_Palm-Green)](https://github.com/polioan)
 
@@ -190,7 +190,7 @@ Above all, this isn't a full complier and shouldn't be treated as such, as the c
 
 Francis now has the ability to translate Notion formula to NotionFormulaGenerator objects! This has been a thorn in my side ever since I started Francis a few years back.
 
-This works much in the same way as Francis - see examples/codifyExample.ts.
+This works much in the same way as Francis - see examples/codifyExample.ts for more information
 
 I'm intending on updating Francis with the ability to read and write to Notion DBs in order to make this whole process easier. That's why the input type of codify is so strange. This will all be a class in the future, but I'm releasing the functionality a bit preemptively in case it will be useful to anyone.
 

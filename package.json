@@ -1,13 +1,13 @@
 {
   "name": "notion-formula-generator",
-  "version": "2.0.5",
+  "version": "3.0.0",
   "description": "Generate Notion formulas with typescript code",
   "dependencies": {
     "prettier-eslint": "^15.0.1",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.15.4",
+    "@arethetypeswrong/cli": "^0.18.2",
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
     "@changesets/cli": "^2.27.8",
@@ -24,7 +24,7 @@
     "typescript-eslint": "^8.6.0"
   },
   "scripts": {
-    "test": "jest --bail",
+    "test": "jest",
     "lint": "eslint src/*",
     "build": "tsc",
     "check-exports": "attw --pack .",
