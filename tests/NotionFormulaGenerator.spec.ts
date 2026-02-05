@@ -1,5 +1,5 @@
 import { NotionFormulaGenerator } from "../src/NotionFormulaGenerator";
-import { Node } from '../src/helpers/tree';
+import { Node } from "../src/helpers/node";
 import * as Model from "../src/model";
 
 describe('notionFormulaGenerator', () => {
@@ -17,7 +17,7 @@ describe('notionFormulaGenerator', () => {
         it('should properly replace db props', () => {
             const testClass = new BasicTestClass();
             testClass.compile();
-            expect(testClass.tree.root.statement).toEqual('prop("test 1")==prop("test 2")')
+            expect(testClass.tree.root.logicChild.statement).toEqual('prop("test 1")==prop("test 2")')
         });
 
         it('should replace _valueAccessor calls', () => {
@@ -40,6 +40,43 @@ describe('notionFormulaGenerator', () => {
             }
             const testClass = new AccessorClass();
             expect(testClass.compile()).toEqual('prop("myRelation").at(0).prop("Value").abs()');
+        });
+    });
+
+    describe('catchFallThroughElse', () => {
+        it('should append else to a fallthrough if', () => {
+            const inp = 'if(1+1){1}elseif(2+2){2}4'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){1}elseif(2+2){2}else{4}')
+        });
+
+        it('should append else to a nested if', () => {
+            const inp = 'if(1+1){if(1){2}0}else{4}'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){if(1){2}else{0}}else{4}')
+        });
+
+        it('should append else to a nested if and fallthrough if', () => {
+            const inp = 'if(1+1){if(1){2}0}4'
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(1+1){if(1){2}else{0}}else{4}')
+        });
+
+        it('should not add unnecessary else blocks to logic in functions', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{7/3}))')
+        });
+
+        it('should handle parentheses in fallthrough blocks', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}e()))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{e()}))')
+        });
+
+        it('should handle string returns in fallthrough blocks', () => {
+            const inp = 'this.round((if(this.status.value=="Done"||this.blocked.value){7/2}"hello"))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('this.round((if(this.status.value=="Done"||this.blocked.value){7/2}else{"hello"}))')
+        });
+
+        it('should handle open parentheses as the first char in a fall through', () => {
+            const inp = 'if(this.status.value=="Done"||this.blocked.value){7/2}((this.round(this.difficulty.value+100/(this.completionPercent.value+1))/2)*(this.log2(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)/(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)))';
+            expect(NotionFormulaGenerator['catchFallThroughElse'](inp)).toEqual('if(this.status.value=="Done"||this.blocked.value){7/2}else{((this.round(this.difficulty.value+100/(this.completionPercent.value+1))/2)*(this.log2(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)/(this.dateBetween(this.now(),this.lastWorkedOn.value,"days")+1)))}')
         });
     });
 
@@ -88,12 +125,15 @@ describe('notionFormulaGenerator', () => {
             }
             it('should replace function calls', () => {
                 const t = new FunctionTestClass();
-                t.compile();
-                expect(t.tree.root.statement).toEqual('format(prop("test 1")*(2))==prop("test 2")');
-                expect(t.tree.root.trueChild.statement).toEqual('(2)');
+                const result = t.compile();
+                expect(t.tree.root.logicChild.statement).toEqual('format(prop("test 1")*(2))==prop("test 2")');
+                expect(t.tree.root.trueChild.statement).toEqual('()');
+                expect(t.tree.root.trueChild.type).toEqual(Model.NodeType.Wrapper);
+                expect(t.tree.root.trueChild.children).toHaveLength(1);
+                expect(t.tree.root.trueChild.children[0].statement).toEqual('2');
             });
 
-            it('should replace nested function calls', () => {
+            it('should replace nested function calls and wrap them in parentheses', () => {
                 class FunctionTestClassWithNests extends NotionFormulaGenerator {
                     x = new Model.Number('test 1');
                     y = new Model.Text('test 2');
@@ -117,9 +157,13 @@ describe('notionFormulaGenerator', () => {
                     }
                 }
                 const t = new FunctionTestClassWithNests();
-                t.compile();
-                expect(t.tree.root.statement).toEqual('format(prop("test 1")*(2*2))==prop("test 2")');
-                expect(t.tree.root.trueChild.statement).toEqual('(2)');
+                const result = t.compile();
+                expect(t.tree.root.logicChild.statement).toEqual('format(prop("test 1")*(2*2))==prop("test 2")');
+                expect(t.tree.root.trueChild.statement).toEqual('()');
+                expect(t.tree.root.trueChild.type).toEqual(Model.NodeType.Wrapper);
+                expect(t.tree.root.trueChild.children).toHaveLength(1);
+                expect(t.tree.root.trueChild.children[0].statement).toEqual('2');
+                expect(result).toEqual('if(format(prop("test 1")*(2*2))==prop("test 2"),(2),if(((2)*prop("test 1"))>1,(2)*prop("test 1"),0))')
             });
         });
 
@@ -141,9 +185,11 @@ describe('notionFormulaGenerator', () => {
             it('should replace variable calls', () => {
                 const t = new ConstTestClass();
                 t.compile();
-                expect(t.tree.root.statement).toEqual('10*prop("test 1")>prop("test 2")');
+                expect(t.tree.root.logicChild.statement).toEqual('10*prop("test 1")>prop("test 2")');
                 expect(t.tree.root.trueChild.statement).toEqual('10/2');
-                expect(t.tree.root.falseChild.statement).toEqual('(prop("test 2")*prop("test 1"))>1*10');
+                expect(t.tree.root.falseChild.logicChild.statement).toEqual('(prop("test 2")*prop("test 1"))>1*10');
+                expect(t.tree.root.falseChild.trueChild.statement).toEqual('prop("test 1")*prop("test 1")');
+                expect(t.tree.root.falseChild.falseChild.statement).toEqual('0');
             });
         });
 
@@ -234,7 +280,6 @@ describe('notionFormulaGenerator', () => {
                 public blocked = new Model.Checkbox('Blocked');
                 public completionPercent = new Model.Number('Completion %');
                 public lastWorkedOn = new Model.Date('Last worked on');
-                
                 formula() {
                     if (this.status.value == 'Done' || this.blocked.value) {
                         return 0;
@@ -456,8 +501,8 @@ describe('notionFormulaGenerator', () => {
             });
         });
 
-        describe('tails and noses', () => {
-            it('should allow arithmetic expressions (tails) outside of wrapper function call', () => {
+        describe('simple combinations', () => {
+            it('should allow arithmetic expressions outside of wrapper function call', () => {
                 class TestClass extends NotionFormulaGenerator {
                     public status = new Model.Select('Status');
                     public blocked = new Model.Checkbox('Blocked');
