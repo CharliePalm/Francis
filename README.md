@@ -218,9 +218,7 @@ Submit a pull request (with unit test coverage please) and I'll happily review i
 
 ## Known Bugs
 
-There's a bug that causes Francis to short circuit when there are multiple extremely complicated helper function calls in if statements. I've been able to get around it, but please submit a bug report if you're able to replicate.
-
-There's an issue with Notion that arises when pasting extremely complicated formulas in from Francis where prop("property name") fields aren't read correctly. I've gotten around this by just typing a space after pasting.
+There are none that I know of, but please submit a bug report if you encounter anything while using this.
 
 ## Reporting Bugs
 
@@ -228,9 +226,7 @@ If you suspect you've encountered a bug with the codebase and NOT your implement
 
 ## Future Plans
 
-As of now, the only future plan I'm looking to add is a more robust generic typing interface that's both strict and adaptable so as to properly utilize Notion's 2.0 formula API object-esque references. Because I wanted users to be able to utilize this functionality, I had to make some decisions regarding primitive vs objective reference types. In the end, any Notion object
-contains a value field that has its primitive type (if applicable) for primitive comparisons and function input, but it could potentially be more user friendly to forego that and completely rely on object comparisons.
-This brings into question how type safety will be properly enforced and how primitive operations can be carried out, which I don't have a solution for right now, but would like to work more on.
+As mentioned in the release notes, I'm planning on updating Francis' ability to interact with Notion's API. This probably won't be implemented for a while.
 
 ## License
 
