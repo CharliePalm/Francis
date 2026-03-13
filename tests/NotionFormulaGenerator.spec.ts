@@ -165,6 +165,133 @@ describe('notionFormulaGenerator', () => {
                 expect(t.tree.root.trueChild.children[0].statement).toEqual('2');
                 expect(result).toEqual('if(format(prop("test 1")*(2*2))==prop("test 2"),(2),if(((2)*prop("test 1"))>1,(2)*prop("test 1"),0))')
             });
+
+            it('should wrap a simple ternary function body in parentheses', () => {
+                class TernaryTestClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    formula() {
+                        return this.getLabel() + 1;
+                    }
+                    getLabel() {
+                        return this.x.value > 50 ? 100 : 0;
+                    }
+                    public buildFunctionMap(): Map<string, string> {
+                        return new Map([['getLabel', this.getLabel.toString()]]);
+                    }
+                }
+                const t = new TernaryTestClass();
+                const result = t.compile();
+                // The ternary body must be enclosed in () so Notion evaluates
+                // the condition before the surrounding + operator.
+                expect(result).toEqual('(prop("score")>50?100:0)+1');
+            });
+
+            it('should wrap a ternary inside an if block in parentheses without breaking logic', () => {
+                class TernaryInIfTestClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        if (this.blocked.value) {
+                            return 0;
+                        }
+                        return this.getBonus() * 2;
+                    }
+                    getBonus() {
+                        return this.x.value >= 75 ? 10 : 5;
+                    }
+                    public buildFunctionMap(): Map<string, string> {
+                        return new Map([['getBonus', this.getBonus.toString()]]);
+                    }
+                }
+                const t = new TernaryInIfTestClass();
+                const result = t.compile();
+                // The if branch must still work, and the ternary in the else branch
+                // must be wrapped so * 2 binds to the whole ternary result.
+                expect(result).toEqual('if(prop("Blocked"),0,(prop("score")>=75?10:5)*2)');
+            });
+
+            it('should handle a function with both an if block and a ternary', () => {
+                class MixedTestClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        return this.getScore() * 2;
+                    }
+                    getScore() {
+                        if (this.blocked.value) {
+                            return 0;
+                        }
+                        return this.x.value > 50 ? 100 : 25;
+                    }
+                    public buildFunctionMap(): Map<string, string> {
+                        return new Map([['getScore', this.getScore.toString()]]);
+                    }
+                }
+                const t = new MixedTestClass();
+                const result = t.compile();
+                expect(result).toEqual('(if(prop("Blocked"),0,prop("score")>50?100:25))*2');
+            });
+        });
+
+        describe('auto function discovery', () => {
+            it('should auto-discover helper methods without buildFunctionMap', () => {
+                class AutoDiscoverClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    formula() {
+                        return this.getDouble() + 1;
+                    }
+                    getDouble() {
+                        return this.x.value * 2;
+                    }
+                    // No buildFunctionMap override
+                }
+                const t = new AutoDiscoverClass();
+                expect(t.compile()).toEqual('(prop("score")*2)+1');
+            });
+
+            it('should auto-discover multiple interdependent helpers', () => {
+                class AutoDiscoverMultiClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        if (this.blocked.value) {
+                            return 0;
+                        }
+                        return this.getWeightedScore();
+                    }
+                    getWeightedScore() {
+                        return this.getDouble() * this.getBonus();
+                    }
+                    getDouble() {
+                        return this.x.value * 2;
+                    }
+                    getBonus() {
+                        return this.x.value > 50 ? 2 : 1;
+                    }
+                    // No buildFunctionMap override
+                }
+                const t = new AutoDiscoverMultiClass();
+                expect(t.compile()).toEqual('if(prop("Blocked"),0,(prop("score")*2*(prop("score")>50?2:1)))');
+            });
+
+            it('explicit buildFunctionMap entries should take precedence over auto-discovered ones', () => {
+                class ExplicitOverrideClass extends NotionFormulaGenerator {
+                    x = new Model.Number('score');
+                    formula() {
+                        return this.getVal();
+                    }
+                    getVal() {
+                        // This body would produce prop("score")*2, but the
+                        // override below hard-codes it to return 99 instead.
+                        return this.x.value * 2;
+                    }
+                    public buildFunctionMap(): Map<string, string> {
+                        return new Map([['getVal', 'getVal() { return 99; }']]);
+                    }
+                }
+                const t = new ExplicitOverrideClass();
+                expect(t.compile()).toEqual('(99)');
+            });
         });
 
         describe('const replacement', () => {

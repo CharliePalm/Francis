@@ -79,11 +79,6 @@ class MyFirstFormula extends NotionFormulaGenerator {
   nameOfFunction() {
     return 0;
   }
-
-  // If you want to use helper functions, define them here like this
-  public buildFunctionMap(): Map<string, string> {
-    return new Map([['nameOfFunction', this.nameOfFunction.toString()]]);
-  }
 }
 
 const formula = new MyFirstFormula();
@@ -147,8 +142,6 @@ Requirements for creating your formula() function:
 
 Aside from these exceptions, if typescript compiles you should be good to go.
 
-Note that when adding functions you must create a mapping function to communicate to the compiler what functions to replace with what code. The parent class itself cannot effectively bind each method of the child class at compile time so it's necessary to add this yourself. See the examples in myFirstFormula.ts or example.ts.
-
 You are allowed to reference other functions within helper functions, but cannot use recursion or call to the formula() method. This includes multi method recursion; the chain of method calls cannot contain a cycle, and the compiler will let you know if it encounters one.
 
 If you want to wrap logic in a function call (i.e. rounding the result of a calculation), just execute the logic in a helper function and call it within the function you want to use as the wrapper.
@@ -184,7 +177,7 @@ formula() {
 
 Which will lead to the same result, just with ternaries instead of the notion if() function.
 
-Above all, this isn't a full complier and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
+Above all, this isn't a full compiler and shouldn't be treated as such, as the capabilities of Notion formulas are fairly limited. It would be wonderful if the API allowed loops over rollups or dynamic variable definition, it's just not currently possible, and thus I don't see any use cases for things like loops or non-constant variables.
 
 ## New in v3.0.0
 

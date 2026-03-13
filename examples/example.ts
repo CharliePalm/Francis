@@ -11,67 +11,58 @@ class ExampleFormula extends NotionFormulaGenerator {
   public holdOff = new Model.Date('Hold off till date');
 
   formula() {
-    const shouldUsePriorityFactor = true; // flag for disabling priority factor while testing
-    return this.round(
-      this.buildFormula() *
-        (shouldUsePriorityFactor ? this.getPriorityFactor() : 1)
-    );
-  }
-
-  buildFormula() {
-    const addIfNotStarted = 10;
     if (this.status.value === 'Done' || this.blocked.value) {
       return 0;
-    } else if (this.empty(this.dueDate.value)) {
-      // for tasks with no real due date, we want to prioritize the dormant sigmoid as we won't be adding the due date sigmoid
-      if (
-        this.status.value === 'Not started' ||
-        this.completionPercent.value === 0
-      ) {
-        return this.dormantSigmoid() * 3 + addIfNotStarted;
-      } else {
-        return (
-          1.1 * this.dormantSigmoid() * this.getCompletionPercentageFactor()
-        );
-      }
-    } else if (
-      this.status.value === 'Not started' ||
-      this.completionPercent.value === 0
-    ) {
-      return (
-        (this.dueDateSigmoid() + this.dormantSigmoid()) * 2 + addIfNotStarted
-      );
     }
+    return this.round(this.computeVRuntime() * this.getNiceWeight());
+  }
+
+  // CFS-inspired: combines staleness, EDF urgency, and aging into a single priority score.
+  computeVRuntime() {
     return (
-      ((this.dueDateSigmoid() + this.dormantSigmoid()) / 2) *
-      this.getCompletionPercentageFactor()
+      (this.getStalenessScore() +
+        this.getDeadlineUrgency() +
+        this.getAgingBonus()) *
+      this.getCompletionFactor()
     );
   }
 
-  /**
-   * priority is represented by a sigmoid that scales based on days since worked on and days till due. These helper functions define this
-   */
-
-  // a measure of how long since we last touched this task
-  dormantSigmoid() {
+  // vruntime analog: tasks neglected longer accumulate scheduling priority.
+  // Sigmoid saturates at 25 — contributes a baseline even without a deadline.
+  getStalenessScore() {
     return (
-      25 /
-      (1 + this.pow(this.e(), 3 - 1 * (0.25 * this.daysSinceLastWorkedOn())))
+      25 / (1 + this.pow(this.e(), 3 - 0.25 * this.daysSinceLastWorkedOn()))
     );
   }
 
-  // a measure of how many days till the task is due
-  dueDateSigmoid() {
-    return 100 / (1 + this.pow(this.e(), 0.2 * this.daysTillDue()));
+  // EDF (Earliest Deadline First): urgency spikes sharply as the deadline closes in.
+  // Range 0–75 (3x staleness) so approaching deadlines clearly dominate the ranking.
+  // Tasks with no due date contribute 0 here and rely entirely on staleness.
+  getDeadlineUrgency() {
+    return this.empty(this.dueDate.value)
+      ? 0
+      : 75 / (1 + this.pow(this.e(), 0.35 * (this.daysTillDue() - 7)));
   }
 
-  getPriorityFactor() {
+  // Aging: prevent starvation for tasks that have never been started.
+  // Mirrors Linux's priority aging — long-waiting tasks earn a flat boost.
+  getAgingBonus() {
+    return this.status.value === 'Not started' ||
+      this.completionPercent.value === 0
+      ? 10
+      : 0;
+  }
+
+  // Process yield: tasks further along cede some priority to fresher work.
+  // Range 0.9 (100% done) to 1.9 (0% done).
+  getCompletionFactor() {
+    return 1.9 - this.completionPercent.value / 100;
+  }
+
+  // Nice value weight: difficulty maps to a scheduling weight like Linux nice values.
+  // Default difficulty (10) → ~0.86; scales linearly with importance.
+  getNiceWeight() {
     return (this.difficulty.value ? this.difficulty.value : 10) / 300 + 0.83;
-  }
-
-  // start high, get lower as more complete
-  getCompletionPercentageFactor() {
-    return (-1 * this.completionPercent.value) / 100 + 1.9;
   }
 
   // date utils:
@@ -86,21 +77,6 @@ class ExampleFormula extends NotionFormulaGenerator {
     return this.lastWorkedOn.value
       ? this.dateBetween(this.now(), this.lastWorkedOn.value, 'days')
       : this.dateBetween(this.now(), this.createdTime, 'days');
-  }
-
-  buildFunctionMap(): Map<string, string> {
-    return new Map([
-      ['getPriorityFactor', this.getPriorityFactor.toString()],
-      ['daysSinceLastWorkedOn', this.daysSinceLastWorkedOn.toString()],
-      ['daysTillDue', this.daysTillDue.toString()],
-      ['buildFormula', this.buildFormula.toString()],
-      ['dormantSigmoid', this.dormantSigmoid.toString()],
-      [
-        'getCompletionPercentageFactor',
-        this.getCompletionPercentageFactor.toString(),
-      ],
-      ['dueDateSigmoid', this.dueDateSigmoid.toString()],
-    ]);
   }
 }
 

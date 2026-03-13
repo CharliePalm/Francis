@@ -32,7 +32,12 @@ export abstract class NotionFormulaGenerator {
    * @returns the compiled formula
    */
   public compile(): string {
-    const functionMap = this.buildFunctionMap();
+    // Auto-discover user-defined helper methods, then let any explicit
+    // buildFunctionMap entries take precedence for backward compatibility.
+    const functionMap = new Map([
+      ...this.buildAutoFunctionMap(),
+      ...this.buildFunctionMap(),
+    ]);
     functionMap.forEach((v, k) =>
       functionMap.set(k, v.replace(/\/\/.*$/gm, ''))
     );
@@ -94,8 +99,39 @@ export abstract class NotionFormulaGenerator {
     return endResult;
   }
 
+  /**
+   * @deprecated No longer required. Helper methods defined on your subclass are
+   * discovered automatically. Override only if you need to explicitly exclude a
+   * method or supply a hand-crafted body string.
+   */
   public buildFunctionMap(): Map<string, string> {
     return new Map<string, string>();
+  }
+
+  /**
+   * Reflects over the subclass prototype chain to build a function map without
+   * requiring the user to enumerate their helper methods manually.
+   */
+  private buildAutoFunctionMap(): Map<string, string> {
+    const baseNames = new Set(Object.getOwnPropertyNames(NotionFormulaGenerator.prototype));
+    const exclude = new Set(['constructor', 'formula', 'buildFunctionMap', 'buildAutoFunctionMap']);
+    const autoMap = new Map<string, string>();
+    const thisObj = this as Record<string, any>;
+
+    // Walk from the direct subclass prototype up to (but not including) the base.
+    let proto = Object.getPrototypeOf(this);
+    while (proto && proto !== NotionFormulaGenerator.prototype) {
+      for (const name of Object.getOwnPropertyNames(proto)) {
+        if (!baseNames.has(name) && !exclude.has(name) && !autoMap.has(name)) {
+          const member = thisObj[name];
+          if (typeof member === 'function') {
+            autoMap.set(name, member.toString());
+          }
+        }
+      }
+      proto = Object.getPrototypeOf(proto);
+    }
+    return autoMap;
   }
 
   private static catchFallThroughElse(formulaBody: string): string {
@@ -226,7 +262,12 @@ export abstract class NotionFormulaGenerator {
           throw Error('internal error encountered while updating function map');
         f = f.replace(
           new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'),
-          (match, functionName) => input.get(functionName) ?? match
+          (match, functionName) => {
+            const body = input.get(functionName) ?? match;
+            // Wrap bodies that contain a ternary so that the operator precedence
+            // of any surrounding arithmetic/logic is made explicit in the output.
+            return body.includes('?') ? `(${body})` : body;
+          }
         );
         input.set(key, f);
         if (!f.match(r)) {
