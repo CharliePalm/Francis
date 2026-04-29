@@ -113,8 +113,15 @@ export abstract class NotionFormulaGenerator {
    * requiring the user to enumerate their helper methods manually.
    */
   private buildAutoFunctionMap(): Map<string, string> {
-    const baseNames = new Set(Object.getOwnPropertyNames(NotionFormulaGenerator.prototype));
-    const exclude = new Set(['constructor', 'formula', 'buildFunctionMap', 'buildAutoFunctionMap']);
+    const baseNames = new Set(
+      Object.getOwnPropertyNames(NotionFormulaGenerator.prototype)
+    );
+    const exclude = new Set([
+      'constructor',
+      'formula',
+      'buildFunctionMap',
+      'buildAutoFunctionMap',
+    ]);
     const autoMap = new Map<string, string>();
     const thisObj = this as Record<string, any>;
 
@@ -264,9 +271,12 @@ export abstract class NotionFormulaGenerator {
           new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'),
           (match, functionName) => {
             const body = input.get(functionName) ?? match;
-            // Wrap bodies that contain a ternary so that the operator precedence
-            // of any surrounding arithmetic/logic is made explicit in the output.
-            return body.includes('?') ? `(${body})` : body;
+            // Wrap bodies that contain a ternary or an if-block so that the
+            // operator precedence of any surrounding arithmetic/logic is
+            // made explicit in the output.
+            return body.includes('?') || body.includes('{')
+              ? `(${body})`
+              : body;
           }
         );
         input.set(key, f);
@@ -411,7 +421,7 @@ export abstract class NotionFormulaGenerator {
   test(value: number | string | boolean, toMatch: string): boolean {
     return true;
   }
-  empty(value: number | string | boolean | NotionDate): boolean {
+  empty(value: unknown): boolean {
     return true;
   }
   match(value: string, regEx: string): NotionList {

@@ -5,13 +5,21 @@ class ExampleFormula extends NotionFormulaGenerator {
   public status = new Model.Select('Status');
   public tags = new Model.MultiSelect('Tags');
   public difficulty = new Model.Number('Difficulty');
-  public blocked = new Model.Checkbox('Blocked');
   public completionPercent = new Model.Number('Completion %');
   public lastWorkedOn = new Model.Date('Last worked on');
-  public holdOff = new Model.Date('Hold off till date');
+  public urgency = new Model.Select('Urgency');
+  public blockedBy = new Model.Relation('Blocked by');
 
   formula() {
-    if (this.status.value === 'Done' || this.blocked.value) {
+    if (
+      this.status.value === 'Done' ||
+      this.status.value === 'Blocked' ||
+      (!this.empty(this.blockedBy) &&
+        this.blockedBy.every(
+          (curr) =>
+            !['Completed', 'Removed'].includes(curr._valueAccessor('Status'))
+        ))
+    ) {
       return 0;
     }
     return this.round(this.computeVRuntime() * this.getNiceWeight());
@@ -35,20 +43,32 @@ class ExampleFormula extends NotionFormulaGenerator {
     );
   }
 
+  getUrgencyFactor() {
+    if (this.urgency.value === 'Low') {
+      return 0.6;
+    } else if (this.urgency.value === 'medium') {
+      return 0.8;
+    } else {
+      return 1;
+    }
+  }
+
   // EDF (Earliest Deadline First): urgency spikes sharply as the deadline closes in.
   // Range 0–75 (3x staleness) so approaching deadlines clearly dominate the ranking.
-  // Tasks with no due date contribute 0 here and rely entirely on staleness.
+  // Tasks with no due date contribute 0 here just scale with age
   getDeadlineUrgency() {
     return this.empty(this.dueDate.value)
-      ? 0
+      ? this.pow(1.1, this.min(this.daysSinceLastWorkedOn(), 15)) +
+          this.daysSinceLastWorkedOn()
       : 75 / (1 + this.pow(this.e(), 0.35 * (this.daysTillDue() - 7)));
   }
 
   // Aging: prevent starvation for tasks that have never been started.
   // Mirrors Linux's priority aging — long-waiting tasks earn a flat boost.
   getAgingBonus() {
-    return this.status.value === 'Not started' ||
-      this.completionPercent.value === 0
+    return (this.status.value === 'Not started' ||
+      this.completionPercent.value === 0) &&
+      this.daysSinceLastWorkedOn() > 2
       ? 10
       : 0;
   }

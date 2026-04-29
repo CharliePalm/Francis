@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-condition */
 import { NotionFormulaGenerator } from "../src/NotionFormulaGenerator";
 import { Node } from "../src/helpers/node";
 import * as Model from "../src/model";
@@ -125,7 +126,7 @@ describe('notionFormulaGenerator', () => {
             }
             it('should replace function calls', () => {
                 const t = new FunctionTestClass();
-                const result = t.compile();
+                t.compile();
                 expect(t.tree.root.logicChild.statement).toEqual('format(prop("test 1")*(2))==prop("test 2")');
                 expect(t.tree.root.trueChild.statement).toEqual('()');
                 expect(t.tree.root.trueChild.type).toEqual(Model.NodeType.Wrapper);
@@ -626,6 +627,114 @@ describe('notionFormulaGenerator', () => {
                 const result = tc.compile();
                 expect(result).toEqual(`(if(prop("Status")=="Done",1,2))+(if(prop("Status")!="Done",3,4))`);
             });
+
+            it('should handle three chained function calls where the last returns an if/elseif/else block', () => {
+                class TestClass extends NotionFormulaGenerator {
+                    public urgency = new Model.Select('Urgency');
+                    public x = new Model.Number('X');
+                    formula() {
+                        return this.getA() * this.getB() * this.getC();
+                    }
+                    getA() { return 2; }
+                    getB() { return this.x.value + 1; }
+                    getC() {
+                        if (this.urgency.value == 'Low') {
+                            return 0.6;
+                        } else if (this.urgency.value == 'Medium') {
+                            return 0.8;
+                        }
+                        return 1;
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(`(2)*(prop("X")+1)*(if(prop("Urgency")=="Low",0.6,if(prop("Urgency")=="Medium",0.8,1)))`);
+            });
+
+            it('should handle three chained if-returning functions multiplied together', () => {
+                // This reproduces the real bug: after function substitution, all three bodies
+                // contain `{` and `}` characters. getCombinationNodeChildren scans the resulting
+                // string (e.g. "if(...){a}else{b}*if(...){c}else{d}*if(...){e}else{f}")
+                // and must not split at a `*` that sits inside a `{}` branch.
+                class TestClass extends NotionFormulaGenerator {
+                    public status = new Model.Select('Status');
+                    public urgency = new Model.Select('Urgency');
+                    public blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        return this.getA() * this.getB() * this.getC();
+                    }
+                    getA() {
+                        if (this.status.value == 'Done') {
+                            return 1;
+                        }
+                        return 2;
+                    }
+                    getB() {
+                        if (this.blocked.value) {
+                            return 0.5;
+                        }
+                        return 1;
+                    }
+                    getC() {
+                        if (this.urgency.value == 'Low') {
+                            return 0.6;
+                        } else if (this.urgency.value == 'Medium') {
+                            return 0.8;
+                        }
+                        return 1;
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(
+                    `(if(prop("Status")=="Done",1,2))*(if(prop("Blocked"),0.5,1))*(if(prop("Urgency")=="Low",0.6,if(prop("Urgency")=="Medium",0.8,1)))`
+                );
+            });
+
+            it('should handle a compound function multiplied by two other if-returning functions', () => {
+                // Mirrors the ExampleFormula structure: computeVRuntime() * getNiceWeight() * getUrgencyFactor()
+                // where computeVRuntime() itself calls other helpers that return if-blocks,
+                // producing nested `{}` in the substituted string before the final `*` chain.
+                class TestClass extends NotionFormulaGenerator {
+                    public status = new Model.Select('Status');
+                    public urgency = new Model.Select('Urgency');
+                    public blocked = new Model.Checkbox('Blocked');
+                    formula() {
+                        return this.computeScore() * this.getWeight() * this.getUrgencyFactor();
+                    }
+                    computeScore() {
+                        return (this.getBase() + this.getBonus());
+                    }
+                    getBase() {
+                        if (this.status.value == 'Done') {
+                            return 1;
+                        }
+                        return 5;
+                    }
+                    getBonus() {
+                        if (this.blocked.value) {
+                            return 0;
+                        }
+                        return 10;
+                    }
+                    getWeight() {
+                        return 0.5;
+                    }
+                    getUrgencyFactor() {
+                        if (this.urgency.value == 'Low') {
+                            return 0.6;
+                        } else if (this.urgency.value == 'Medium') {
+                            return 0.8;
+                        }
+                        return 1;
+                    }
+                }
+                const tc = new TestClass();
+                const result = tc.compile();
+                expect(result).toEqual(
+                    `(((if(prop("Status")=="Done",1,5))+(if(prop("Blocked"),0,10))))*(0.5)*(if(prop("Urgency")=="Low",0.6,if(prop("Urgency")=="Medium",0.8,1)))`
+                );
+            });
         });
 
         describe('simple combinations', () => {
@@ -968,7 +1077,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new TestClass();
             const result = tc.compile();
-            expect(result).toEqual(`round((if(prop("Blocked"),abs(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))+floor(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)),ceil(if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)))))+abs((-10))*log2((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)))`);
+            expect(result).toEqual(`round((if(prop("Blocked"),abs((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)))+floor((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))),ceil((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3))))))+abs((-10))*log2((if(prop("Status")=="Done" or prop("Blocked"),7/2,7/3)))`);
         });
 
         it('handles formula types properly', () => {
@@ -1069,7 +1178,7 @@ describe('notionFormulaGenerator', () => {
             }
             const tc = new ComplexFormula();
             const result = tc.compile();
-            expect(result).toEqual(`if(prop(\"Status\")==\"Done\" or prop(\"Blocked\"),0,if(format(prop(\"Due date\"))==\"\",if(prop(\"Status\")!=\"In Progress\",(((prop(\"Difficulty\")+(100/(prop(\"Completion %\")+1))))/100)*10,(((prop(\"Difficulty\")+(100/(prop(\"Completion %\")+1))))/100)*(dateBetween(now(),prop(\"Last worked on\"),\"days\"))),if(dateBetween(prop(\"Due date\"),now(),\"days\")<=0,if(contains(prop(\"Tags\"),\"Must finish\"),100+prop(\"Difficulty\"),100-prop(\"Completion %\")+prop(\"Difficulty\")),if(dateBetween(prop(\"Due date\"),now(),\"days\")<=7,((round(prop(\"Difficulty\")+100/(prop(\"Completion %\")+1))/2)*(log2(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1)/(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1)))*(7/log2((dateBetween(now(),prop(\"Last worked on\"),\"days\")))),if(prop(\"Status\")==\"Not started\",((round(prop(\"Difficulty\")+100/(prop(\"Completion %\")+1))/2)*(log2(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1)/(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1)))+10,((round(prop(\"Difficulty\")+100/(prop(\"Completion %\")+1))/2)*(log2(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1)/(dateBetween(now(),prop(\"Last worked on\"),\"days\")+1))))))))`)
+            expect(result).toEqual(`if(prop("Status")=="Done" or prop("Blocked"),0,if(format(prop("Due date"))=="",if(prop("Status")!="In Progress",(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*10,(((prop("Difficulty")+(100/(prop("Completion %")+1))))/100)*(dateBetween(now(),prop("Last worked on"),"days"))),if(dateBetween(prop("Due date"),now(),"days")<=0,if(contains(prop("Tags"),"Must finish"),100+prop("Difficulty"),100-prop("Completion %")+prop("Difficulty")),if(dateBetween(prop("Due date"),now(),"days")<=7,((round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1)))*(7/log2((dateBetween(now(),prop("Last worked on"),"days")))),if(prop("Status")=="Not started",((round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1)))+10,((round(prop("Difficulty")+100/(prop("Completion %")+1))/2)*(log2(dateBetween(now(),prop("Last worked on"),"days")+1)/(dateBetween(now(),prop("Last worked on"),"days")+1))))))))`)
         });
     });
 });
