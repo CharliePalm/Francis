@@ -1,40 +1,25 @@
 import { NotionFormulaCodifier } from '../src/NotionFormulaCodifier';
 const formula =
-  'if(prop("Tags")=="PROF",("+"+format(ceil(toNumber(prop("ClassLevel").at(0).prop("Level"))/4)+1)),((prop("Amount")>=10?"+":"")+format(floor((prop("Amount")-10)/2))))';
-const result = new NotionFormulaCodifier(formula, {
-  ['Amount']: {
-    name: 'Amount',
-    type: 'number',
+  'if(prop("id")=="1",((prop("Skills").find(current.prop("Tags")=="STR").prop("Modifier").toNumber()+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())>=0?"+":"")+format(prop("Skills").find(current.prop("Tags")=="STR").prop("Modifier").toNumber()+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())+prop("Other Bonus"))),if(prop("id")=="2",if( not (prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Barbarian" and prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Pick your class here!"),0,("+"+format((if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Wizard" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Artificer" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Rogue" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Fighter",prop("Skills").find(current.prop("Tags")=="INT").prop("Modifier").toNumber(),if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Sorcerer" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Bard" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Paladin" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Warlock",prop("Skills").find(current.prop("Tags")=="CHA").prop("Modifier").toNumber(),if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Druid" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Ranger" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Cleric" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Monk",prop("Skills").find(current.prop("Tags")=="WIS").prop("Modifier").toNumber(),0))))+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())+prop("Other Bonus")))),if(prop("id")=="4",if( not (prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Barbarian" and prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Pick your class here!"),0,format(8+(if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Wizard" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Artificer" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Rogue" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Fighter",prop("Skills").find(current.prop("Tags")=="INT").prop("Modifier").toNumber(),if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Sorcerer" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Bard" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Paladin" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Warlock",prop("Skills").find(current.prop("Tags")=="CHA").prop("Modifier").toNumber(),if(prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Druid" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Ranger" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Cleric" or prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Monk",prop("Skills").find(current.prop("Tags")=="WIS").prop("Modifier").toNumber(),0))))+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())+prop("Other Bonus"))),if(prop("id")=="5",((prop("Skills").find(current.prop("Tags")=="DEX").prop("Modifier").toNumber()+prop("Other Bonus")>=0?"+":"")+format(prop("Skills").find(current.prop("Tags")=="DEX").prop("Modifier").toNumber()+prop("Other Bonus"))),((prop("Skills").find(current.prop("Tags")=="DEX").prop("Modifier").toNumber()+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())>=0?"+":"")+format(prop("Skills").find(current.prop("Tags")=="DEX").prop("Modifier").toNumber()+(prop("Skills").find(current.prop("Tags")=="PROF").prop("Modifier").toNumber())+prop("Other Bonus")))))))';
+const small =
+  'if(this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Sorcerer" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Bard" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Paladin" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Warlock",this.skills.find((index, current) => (index, current) => current._valueAccessor("Tags")=="CHA")._valueAccessor("Modifier").toNumber(),if(this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Druid" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Ranger" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Cleric" || this.classes.find((index, current) => (index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Monk",this.skills.find((index, current) => (index, current) => current._valueAccessor("Tags")=="WIS")._valueAccessor("Modifier").toNumber(),0))';
+const result = new NotionFormulaCodifier(small, {
+  ['Skills']: {
+    name: 'Skills',
+    type: 'relation',
   },
   ['Tags']: {
     name: 'Tags',
     type: 'select',
   },
-  ['ClassLevel']: {
-    name: 'ClassLevel',
+  ['Modifier']: {
+    name: 'Modifier',
+    type: 'string',
+  },
+  ['Classes']: {
+    name: 'Classes',
     type: 'relation',
   },
 })
   .decompile()
   .then((res) => console.log(res));
-
-import { NotionFormulaGenerator } from '../src/NotionFormulaGenerator';
-import * as Model from '../src/model';
-class MyFirstFormula extends NotionFormulaGenerator {
-  public amount = new Model.Number('Amount');
-  public tags = new Model.Select('Tags');
-  public level = new Model.Rollup<Model.NotionNumber>('_level');
-
-  formula() {
-    if (this.tags.value == 'PROF') {
-      return '+' + this.format(this.ceil(this.level.value.value / 4) + 1);
-    } else {
-      return (
-        (this.amount.value >= 10 ? '+' : '') +
-        this.format(this.floor((this.amount.value - 10) / 2))
-      );
-    }
-  }
-}
-
-console.log(new MyFirstFormula().compile());

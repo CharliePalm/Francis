@@ -13,10 +13,6 @@ const getBasic = (innerFormula: string) =>
         formula() {
             ${innerFormula}
         }
-
-        public buildFunctionMap(): Map<string, string> {
-            return new Map([]);
-        }
     }
 `);
 
@@ -51,12 +47,6 @@ const getComplex = (
       ${wrappers
         .map((wrapper) => `${wrapper[0]}() {${wrapper[1]}}`)
         .join('\n\n')}
-
-      public buildFunctionMap(): Map<string, string> {
-        return new Map([${wrappers
-          .map((wrapper) => `['${wrapper[0]}', this.${wrapper[0]}.toString()],`)
-          .join('\n')}]);
-      }
     }
     `);
 };
@@ -68,19 +58,122 @@ describe('NotionFormulaCodifier', () => {
         new NotionFormulaCodifier(
           'map(prop("myProperty"), format(current))',
           {}
-        ).execReplace()
+        )['execReplace']()
       ).toEqual(
         'this.myProperty.map((index, current) => this.format(current))'
       );
     });
+
     it('should replace object callback functions', () => {
       expect(
         new NotionFormulaCodifier(
           'prop("myProperty").map(format(current))',
           {}
-        ).execReplace()
+        )['execReplace']()
       ).toEqual(
         'this.myProperty.map((index, current) => this.format(current))'
+      );
+    });
+
+    it('should replace "or" operators with js equivalents', () => {
+      expect(
+        new NotionFormulaCodifier(
+          'prop("myProperty") or prop("otherProperty")',
+          {}
+        )['execReplace']()
+      ).toEqual('this.myProperty || this.otherProperty');
+    });
+
+    it('should replace "and" operators with js equivalents', () => {
+      expect(
+        new NotionFormulaCodifier(
+          'prop("myProperty") and prop("otherProperty")',
+          {}
+        )['execReplace']()
+      ).toEqual('this.myProperty && this.otherProperty');
+    });
+
+    it('should remove whitespace from function calls', () => {
+      expect(
+        new NotionFormulaCodifier('if (prop("myProperty"), 1, 0)', {})[
+          'execReplace'
+        ]()
+      ).toEqual('if(this.myProperty, 1, 0)');
+    });
+
+    it('does not duplicate current.prop and does not append .this incorrectly', () => {
+      const formula =
+        'prop("Classes").find(current.prop("isHighestLevel")).prop("Class")=="Bard"';
+      const result = new NotionFormulaCodifier(formula, {
+        Classes: { name: 'Classes', type: 'relation' },
+        isHighestLevel: { name: 'isHighestLevel', type: 'checkbox' },
+        Class: { name: 'Class', type: 'select' },
+      })['execReplace']();
+
+      expect(result).toEqual(
+        'this.classes.find((index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")=="Bard"'
+      );
+    });
+
+    describe('replace not operators', () => {
+      it('replaces not(...) with this.not(...) when no extra whitespace', () => {
+        const result = new NotionFormulaCodifier('not(prop("A"))', {
+          A: { name: 'A', type: 'checkbox' },
+        })['execReplace']();
+        expect(result).toEqual('this.not(this.a)');
+      });
+
+      it('replaces not ( ... ) with this.not(...) when there is a space before paren', () => {
+        const result = new NotionFormulaCodifier('not (prop("A"))', {
+          A: { name: 'A', type: 'checkbox' },
+        })['execReplace']();
+        expect(result).toEqual('this.not(this.a)');
+      });
+
+      it('replaces not with varied whitespace (leading/trailing and inner spaces)', () => {
+        const result = new NotionFormulaCodifier(' not ( prop("A") )', {
+          A: { name: 'A', type: 'checkbox' },
+        })['execReplace']();
+        expect(result).toEqual('this.not( this.a )');
+      });
+
+      it('replaces not\t(prop(...)) with this.not(...) when tab present', () => {
+        const result = new NotionFormulaCodifier('not\t(prop("A"))', {
+          A: { name: 'A', type: 'checkbox' },
+        })['execReplace']();
+        expect(result).toEqual('this.not(this.a)');
+      });
+    });
+
+    it('Uses value accessor when preceded by current.', () => {
+      const formula = 'prop("Skills").find(current.prop("Tags")=="STR")';
+      const result = new NotionFormulaCodifier(formula, {
+        Skills: { name: 'Skills', type: 'relation' },
+        Tags: { name: 'Tags', type: 'select' },
+      })['execReplace']();
+
+      expect(result).toEqual(
+        'this.skills.find((index, current) => current._valueAccessor("Tags")=="STR")'
+      );
+    });
+
+    it('handles uppercase Prop(...) the same as prop(...)', () => {
+      const result = new NotionFormulaCodifier('Prop("Base Modifier")', {
+        'Base Modifier': { name: 'Base Modifier', type: 'rollup' },
+      })['execReplace']();
+      expect(result).toEqual('this.baseModifier');
+    });
+
+    it('should handle whatever happened here', () => {
+      const formula =
+        'not (prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Barbarian" and prop("Classes").find(current.prop("isHighestLevel")).prop("Class")!="Pick your class here!")';
+      const result = new NotionFormulaCodifier(formula, {
+        Classes: { name: 'Classes', type: 'relation' },
+        isHighestLevel: { name: 'isHighestLevel', type: 'checkbox' },
+        Class: { name: 'Class', type: 'select' },
+      })['execReplace']();
+      expect(result).toEqual(
+        'this.not(this.classes.find((index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")!="Barbarian" && this.classes.find((index, current) => current._valueAccessor("isHighestLevel"))._valueAccessor("Class")!="Pick your class here!")'
       );
     });
   });
@@ -92,6 +185,8 @@ describe('NotionFormulaCodifier', () => {
   describe('reduceWrappers', () => {
     // todo, write some tests here
   });
+
+  describe('wrapLogic', () => {});
 
   describe('e2e', () => {
     it('should properly encode a basic formula', async () => {

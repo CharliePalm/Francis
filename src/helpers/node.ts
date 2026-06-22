@@ -11,7 +11,8 @@ export class Node {
   constructor(
     public type: NodeType,
     public statement: string,
-    public isReverse = false
+    public isReverse = false,
+    public id: number
   ) {
     this.statement = statement.trim();
   }

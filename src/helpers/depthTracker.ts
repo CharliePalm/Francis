@@ -1,4 +1,4 @@
-export class DepthTracker {
+export abstract class BaseDepthTracker {
   public index = -1;
   public inDoubleQuote = false;
   public inSingleQuote = false;
@@ -6,6 +6,7 @@ export class DepthTracker {
   public bracketDepth = 0;
 
   constructor(public str: string) {}
+
   public get inQuote() {
     return this.inDoubleQuote || this.inSingleQuote;
   }
@@ -23,17 +24,55 @@ export class DepthTracker {
   }
 
   public get currChar() {
-    return this.index >= 0 && this.index < this.length
-      ? this.str[this.index]
-      : '';
+    return this.relativeCharAt(0);
   }
 
   public get nextChar() {
-    return this.hasNext ? this.str[this.index + 1] : '';
+    return this.relativeCharAt(1);
   }
 
-  public get lastChar() {
-    return this.index >= 1 ? this.str[this.index - 1] : '';
+  public get prevChar() {
+    return this.relativeCharAt(-1);
+  }
+
+  /**
+   * Returns a substring of the string, starting at the current position.
+   * @param start
+   * @param length
+   * @returns the substring, or undefined if the indices are out of bounds
+   */
+  public substr(start: number, length?: number): string | undefined {
+    length ??= Math.abs(start);
+    if (
+      start + this.index < 0 ||
+      start + this.index + length > this.str.length
+    ) {
+      return undefined;
+    }
+    return this.str.substring(start + this.index, start + this.index + length);
+  }
+
+  /**
+   * returns the char relative to the current position
+   * @param offset the offset from the current position
+   * @returns the character at the specified offset, or an empty string if the offset is out of bounds
+   */
+  public relativeCharAt(offset: number): string {
+    return this.index + offset >= 0 && this.index + offset < this.length
+      ? this.str[this.index + offset]
+      : '';
+  }
+
+  /**
+   * Advances the tracker to the next character.
+   * @returns true if the tracker has next, otherwise false
+   */
+  abstract inc(): boolean;
+}
+
+export class DepthTracker extends BaseDepthTracker {
+  constructor(str: string) {
+    super(str);
   }
 
   inc(): boolean {

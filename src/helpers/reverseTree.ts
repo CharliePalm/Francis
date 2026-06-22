@@ -118,6 +118,7 @@ export class ReverseTree extends Tree {
     const children = getCombinationNodeChildren(block);
     if (
       children.length > 2 &&
+      // todo - investigate why it doesn't work to remove this
       children.some((child) => child.includes('if('))
     ) {
       Logger.info('Combination node detected: ', children);

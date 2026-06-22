@@ -170,7 +170,7 @@ export abstract class NotionFormulaGenerator {
     while (tracker.inc()) {
       if (
         (!tracker.inQuote || ['"', "'"].includes(tracker.currChar)) &&
-        tracker.lastChar === '}'
+        tracker.prevChar === '}'
       ) {
         if (
           !inElseBlock &&
@@ -271,9 +271,8 @@ export abstract class NotionFormulaGenerator {
           new RegExp(`this\\.(${baseFunctions.join('|')})\\(\\)`, 'g'),
           (match, functionName) => {
             const body = input.get(functionName) ?? match;
-            // Wrap bodies that contain a ternary or an if-block so that the
-            // operator precedence of any surrounding arithmetic/logic is
-            // made explicit in the output.
+            // // Wrap bodies in curly braces to tell the parser to treat them as a single unit (i.e. as combination nodes)
+            // return '{' + body + '}';
             return body.includes('?') || body.includes('{')
               ? `(${body})`
               : body;

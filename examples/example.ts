@@ -1,5 +1,6 @@
 import { NotionFormulaGenerator } from '../src/NotionFormulaGenerator';
 import * as Model from '../src/model';
+
 class ExampleFormula extends NotionFormulaGenerator {
   public dueDate = new Model.Date('Due date');
   public status = new Model.Select('Status');
@@ -9,6 +10,7 @@ class ExampleFormula extends NotionFormulaGenerator {
   public lastWorkedOn = new Model.Date('Last worked on');
   public urgency = new Model.Select('Urgency');
   public blockedBy = new Model.Relation('Blocked by');
+  public repeatSelect = new Model.Select('Repeat');
 
   formula() {
     if (
@@ -21,6 +23,25 @@ class ExampleFormula extends NotionFormulaGenerator {
         ))
     ) {
       return 0;
+    } else if (!this.empty(this.repeatSelect.value)) {
+      // yeah I know this sucks but I can't have a fancy map as we need to play nice with the compiler
+      if (this.repeatSelect.value === 'Every Day') {
+        return this.daysSinceLastWorkedOn() >= 1 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Week') {
+        return this.daysSinceLastWorkedOn() >= 7 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Other Week') {
+        return this.daysSinceLastWorkedOn() >= 14 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Three Weeks') {
+        return this.daysSinceLastWorkedOn() >= 21 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Month') {
+        return this.daysSinceLastWorkedOn() >= 30 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Other Month') {
+        return this.daysSinceLastWorkedOn() >= 60 ? 100 : 0;
+      } else if (this.repeatSelect.value === 'Every Three Months') {
+        return this.daysSinceLastWorkedOn() >= 90 ? 100 : 0;
+      } else {
+        return this.daysSinceLastWorkedOn() >= 180 ? 100 : 0;
+      }
     }
     return this.round(this.computeVRuntime() * this.getNiceWeight());
   }

@@ -291,6 +291,10 @@ export class LastEditedBy extends Person {}
 
 export class ID extends Text {}
 
+export class NotionError {
+  constructor(public message: string) {}
+}
+
 // System
 export type NotionType =
   | NotionNumber

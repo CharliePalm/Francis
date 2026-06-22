@@ -123,14 +123,14 @@ export function getCombinationNodeChildren(block: string): string[] {
 
   while (tracker.inc()) {
     if (
-      tracker.lastChar != ',' &&
+      tracker.prevChar != ',' &&
       tracker.depth === 0 &&
       !tracker.inQuote &&
       (['+', '-', '/', '*', '<', '>'].includes(tracker.currChar) ||
-        ['||', '&&', '=='].includes(tracker.lastChar + tracker.currChar))
+        ['||', '&&', '=='].includes(tracker.prevChar + tracker.currChar))
     ) {
       const isBooleanOperator = ['||', '&&', '=='].includes(
-        tracker.lastChar + tracker.currChar
+        tracker.prevChar + tracker.currChar
       );
       if (
         (isBooleanOperator ? tracker.index - 1 : tracker.index) - bottomPtr >
@@ -173,4 +173,8 @@ export function getCombinationNodeChildren(block: string): string[] {
   }
   Logger.info('returning combination children: ', children);
   return children;
+}
+
+export function isAlphaNumericOrWhitespace(char: string): boolean {
+  return /^[a-zA-Z0-9\s]$/.test(char);
 }

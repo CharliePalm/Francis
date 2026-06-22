@@ -1,13 +1,21 @@
 /* eslint-disable no-case-declarations */
-import { esLintFormat } from './helpers/helpers';
+import { esLintFormat, isAlphaNumericOrWhitespace } from './helpers/helpers';
 import { ReverseTree } from './helpers/reverseTree';
 import { Node } from './helpers/node';
 import { lowerCamel, typeMap } from './helpers/utils';
 import { CodifyProperty, NodeType } from './model';
 import { Logger } from './helpers/logger';
+import { DepthTracker } from './helpers/depthTracker';
 
 const HAS_CALLBACK = ['map', 'filter', 'find', 'findIndex', 'some', 'every'];
 const ADD_VALUE_TYPES = ['number'];
+
+interface Edit {
+  start: number;
+  end: number;
+  replacement: string;
+  consumeClosingParen?: boolean;
+}
 
 export class NotionFormulaCodifier {
   constructor(
@@ -15,7 +23,7 @@ export class NotionFormulaCodifier {
     private properties: Record<string, CodifyProperty>
   ) {}
 
-  wrapperFunctions = new Map<string, string>();
+  private wrapperFunctions = new Map<string, string>();
 
   private replaceArithmeticUsage(
     toFind: string,
@@ -101,7 +109,7 @@ export class NotionFormulaCodifier {
     return wrappers;
   }
 
-  getFormula(properties: Record<string, string>[]): Promise<string> {
+  private getFormula(properties: Record<string, string>[]): Promise<string> {
     const wrappers = this.reduceWrappers();
     properties.forEach(
       (property) => (property.name = lowerCamel(property.name))
@@ -138,20 +146,13 @@ export class NotionFormulaCodifier {
             (prev, [name, content]) => prev + `${name}() {${content}}\n\n`,
             ''
           )}
-
-          public buildFunctionMap(): Map<string, string> {
-              return new Map([${wrappers.reduce(
-                (prev, [name]) =>
-                  prev + `\n['${name}', this.${name}.toString()],`,
-                ''
-              )}]);
-          }
-      }`;
-
+      }`.replace(/\_valueAccessor\(/g, '_valueAccessor<any>(');
+    console.log('final formula: ', rawFormula);
     return esLintFormat(rawFormula);
   }
 
-  wrapLogic(node: Node, currentFormula: string) {
+  private wrapLogic(node: Node, currentFormula: string) {
+    console.log('Wrapping logic for node: ', node);
     let innerFormula = '';
     if (node.type === NodeType.Wrapper) {
       node.wrappedChildren.forEach((child) => {
@@ -185,18 +186,41 @@ export class NotionFormulaCodifier {
       .fill(')')
       .join('')}`;
 
-    Logger.debug('returning wrappers: ', this.wrapperFunctions);
+    Logger.debug('returning from wrapLogic:', {
+      wrapperFunctions: this.wrapperFunctions,
+      currentFormula,
+    });
     return currentFormula;
   }
 
-  build(node: Node, currentFormula = ''): string {
+  private build(node: Node, currentFormula = ''): string {
     switch (node?.type) {
       case NodeType.Logic:
+        console.log('logic node: ', node.logicChild);
+        console.log('true child: ', node.trueChild);
+        console.log('false child: ', node.falseChild);
+        if (
+          (!node.trueChild || !node.falseChild) &&
+          !node.wrappedChildren?.length
+        ) {
+          throw new Error('Missing true or false child in logic node');
+        }
+
+        if (node.logicChild.type === NodeType.Combination) {
+          if (node.logicChild.children.length === 1) {
+            console.log(
+              'narrowing combination to single child: ',
+              node.logicChild.children[0]
+            );
+            node.logicChild = node.logicChild.children[0];
+          }
+        }
         const logicStatement =
           node.logicChild.type === NodeType.Logic
             ? this.wrapLogic(node.logicChild, currentFormula)
-            : this.build(node.logicChild, currentFormula);
+            : this.build(node.logicChild);
         currentFormula = 'if (' + logicStatement + ') { return ';
+        console.log('logic statement: ', logicStatement);
         currentFormula =
           this.build(node.trueChild, currentFormula) + '} else { return ';
         currentFormula = this.build(node.falseChild, currentFormula);
@@ -216,7 +240,7 @@ export class NotionFormulaCodifier {
     return currentFormula;
   }
 
-  findClosingParen(str: string, start: number): number {
+  private findClosingParen(str: string, start: number): number {
     let depth = 1;
     for (let i = start; i < str.length; i++) {
       if (str[i] === '(') depth++;
@@ -226,7 +250,7 @@ export class NotionFormulaCodifier {
     throw new Error('Unbalanced parentheses');
   }
 
-  splitTopLevel(str: string): string[] {
+  private splitTopLevel(str: string): string[] {
     const parts = [];
     let depth = 0;
     let current = '';
@@ -246,72 +270,142 @@ export class NotionFormulaCodifier {
     return parts;
   }
 
-  execReplace(): string {
-    this.formula = this.formula
-      .replace(
-        /[pP]rop\("(.*?)"\)/g,
-        (match, propName) => `this.${lowerCamel(propName)}`
-      )
-      .replace(
-        /(?<!\.)(?<!this\.)\b(?!if\b)([a-zA-Z_][a-zA-Z0-9_]*)\(/g,
-        (match, word) => `this.${word}(`
-      );
-    const toDelete: string[] = [];
-    const toSwitch: [string, string][] = [];
-
+  private execReplace(): string {
+    console.log('starting:\n' + this.formula);
     this.formula = this.formula.replace(
-      new RegExp(`(\\.?)(${HAS_CALLBACK.join('|')})\\(`, 'g'),
-      (match, dot, method, offset) => {
-        const start = offset + match.length; // position after "("
-        const end = this.findClosingParen(this.formula, start);
-        const argsString = this.formula.slice(start, end);
-
-        const args = this.splitTopLevel(argsString);
-
-        const last = args[args.length - 1].trim();
-        const transformed = `(index, current) => ${last}`;
-
-        args[args.length - 1] = transformed;
-        toDelete.push(argsString);
-        if (args.length === 2) {
-          toSwitch.push(['this' + match + args[0] + ', ', args[0] + match]);
-        }
-        return `${dot}${method}(` + args.join(', ');
-      }
+      /(?<!\.)(?<!this\.)\b(?!if\b)([a-zA-Z_][a-zA-Z0-9_]*)\(/g,
+      (_, word) => `this.${word}(`
     );
-    toSwitch.forEach(([orig, replacement]) => {
-      const regex = new RegExp(
-        orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        'g'
-      );
-      this.formula = this.formula.replace(regex, replacement);
-    });
-    // we can't accurately replace in the above fn because we don't search for the regex on the closed parantheses
-    toDelete.forEach((orig) => {
-      const regex = new RegExp(
-        orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        'g'
-      );
-      let match: RegExpExecArray | null;
-      let lastIndex = -1;
-      while ((match = regex.exec(this.formula))) {
-        lastIndex = Math.max(lastIndex, match.index);
+    console.log(this.formula);
+    const tracker = new DepthTracker(this.formula);
+    let str: string = '';
+    while (tracker.inc()) {
+      str += tracker.currChar;
+      if (tracker.inQuote) {
+        continue;
       }
-      if (lastIndex !== -1) {
-        this.formula =
-          this.formula.slice(0, lastIndex) +
-          this.formula.slice(lastIndex + orig.length);
-      }
-    });
 
+      if (tracker.substr(-3, 4) === ' or ') {
+        // replace or -> ||
+        console.log('tracker.substr(-4, 4):', tracker.substr(-4, 4));
+        str = str.slice(0, -4) + ' || ';
+      } else if (tracker.substr(-4, 5) === ' and ') {
+        // replace and -> &&
+        console.log('tracker.substr(-5, 5):', tracker.substr(-5, 5));
+        str = str.slice(0, -5) + ' && ';
+      } else if (
+        tracker.substr(0, 3) === 'not' &&
+        isAlphaNumericOrWhitespace(tracker.prevChar || ' ') &&
+        isAlphaNumericOrWhitespace(tracker.relativeCharAt(3))
+      ) {
+        // replace not -> this.not
+        console.log('tracker.substr(-3, 3):', tracker.substr(0, 3));
+        str = str.slice(0, -1) + 'this.n';
+      } else if (tracker.nextChar === '(') {
+        // this ensures that function calls contain no white space from identifier -> parenthese
+        str = str.trim();
+      } else if (tracker.substr(0, 4)?.toLowerCase() === 'prop') {
+        // adds 'this.' to the beginning of the DB's properties, and uses the value accessor for properties of other objects
+        const isValueAccessor =
+          tracker.substr(-8, 7) === 'current' || tracker.substr(-2) === ').';
+        console.log(
+          `isValueAccessor: ${
+            tracker.substr(-8, 7) === 'current' || tracker.substr(-2) === ').'
+          }`
+        );
+        const name = this.getPropName(tracker);
+        if (isValueAccessor) {
+          str = str.slice(0, -1) + `_valueAccessor("${name}"`;
+        } else {
+          str = str.slice(0, -1) + `${lowerCamel(name)}`;
+          tracker.inc(); // Move past closing parenthesis
+        }
+      }
+    }
+    this.formula = str;
+    console.log(this.formula);
+    const edits: Edit[] = [];
+    const callbackPattern = new RegExp(
+      `(\\.?)(${HAS_CALLBACK.join('|')})\\(`,
+      'g'
+    );
+
+    let match: RegExpExecArray | null;
+    while ((match = callbackPattern.exec(this.formula)) !== null) {
+      this.replaceCallbackFunctions(match, edits);
+    }
+
+    // Apply right-to-left so earlier offsets stay valid
+    edits.sort((a, b) => b.start - a.start);
+
+    for (const { start, end, replacement, consumeClosingParen } of edits) {
+      this.formula =
+        this.formula.slice(0, start) +
+        replacement +
+        this.formula.slice(consumeClosingParen ? end + 1 : end);
+    }
+    console.log('finshed:\n' + this.formula);
     return this.formula;
   }
 
+  private replaceCallbackFunctions(
+    match: RegExpExecArray,
+    edits: Edit[]
+  ): void {
+    const [fullMatch, dot, method] = match;
+    const offset = match.index;
+    const argsStart = offset + fullMatch.length;
+    const argsEnd = this.findClosingParen(this.formula, argsStart);
+    const argsString = this.formula.slice(argsStart, argsEnd);
+    console.log({ offset, argsString, argsStart, argsEnd });
+    const args = this.splitTopLevel(argsString);
+    const last = args[args.length - 1].trim();
+    args[args.length - 1] = `(index, current) => ${last}`;
+
+    if (args.length === 2) {
+      const beforeMatch = this.formula.slice(0, offset);
+      let ownerStart = offset;
+      if (dot === '.') {
+        const identMatch = beforeMatch.match(/[a-zA-Z_][a-zA-Z0-9_.]*$/);
+        if (identMatch) {
+          ownerStart = offset - identMatch[0].length;
+        }
+      }
+      const newCall = `${args[0].trim()}${dot}${method}(${args[1]})`;
+      edits.push({
+        start: ownerStart,
+        end: argsEnd,
+        replacement: newCall,
+        consumeClosingParen: true,
+      });
+    } else {
+      edits.push({
+        start: argsStart,
+        end: argsEnd,
+        replacement: args.join(', '),
+      });
+    }
+  }
+
+  private getPropName(tracker: DepthTracker): string {
+    // increment to the next quote:
+    while (!tracker.inQuote) {
+      tracker.inc();
+    }
+    // move past the quote char
+    tracker.inc();
+    let toRet = '';
+    while (tracker.inQuote) {
+      toRet += tracker.currChar;
+      tracker.inc();
+    }
+    return toRet;
+  }
   async decompile(): Promise<string> {
     const propertyVals = Object.keys(this.properties).map(
       (p) => this.properties[p]
     ) as Record<string, string>[];
-    this.execReplace();
+    // this.execReplace();
     if (this.formula.charAt(0) === '(') {
       this.formula = this.formula.substring(1, this.formula.length - 1);
     }

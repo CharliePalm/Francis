@@ -22,7 +22,7 @@ export class Tree {
     // if (statement === undefined || statement === null) {
     //     throw new Error('attempted to add blank statement to tree with parent statement: ' + parent?.statement);
     // }
-    const node = new Node(type, statement, this.isReverse);
+    const node = new Node(type, statement, this.isReverse, this.size);
     if (!parent) {
       this.root = node;
     } else if (
@@ -37,6 +37,10 @@ export class Tree {
       else parent.addFalseChild(node);
     }
     this.size += 1;
+    Logger.debug(
+      `added ${isTrueChild ?? 'logic'} node with parent ` + parent?.id + ': ',
+      node
+    );
     return node;
   }
 
